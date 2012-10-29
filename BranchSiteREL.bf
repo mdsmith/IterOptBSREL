@@ -26,7 +26,7 @@ HarvestFrequencies	(nuc3, dsf, 3, 1, 1);
 // These are the rate class priors for the global fitting
 omega1 = 0.2;
 omega2 = 0.5;
-omega3 = 1.0;
+// XXX O3 omega3 = 1.0;
 
 // I don't know what this is yet, but nuc3 is passed in as an argument here.
 nucCF						= CF3x4	(nuc3, GeneticCodeExclusions);
@@ -35,7 +35,7 @@ nucCF						= CF3x4	(nuc3, GeneticCodeExclusions);
 // imperative hints at their side effects?
 PopulateModelMatrix			  ("MGMatrix1",  nucCF, "t", "omega1", "");
 PopulateModelMatrix			  ("MGMatrix2",  nucCF, "t", "omega2", "");
-PopulateModelMatrix			  ("MGMatrix3",  nucCF, "t", "omega3", "");
+// XXX O3 PopulateModelMatrix			  ("MGMatrix3",  nucCF, "t", "omega3", "");
 
 // What is the difference between omega1 and omegaG1?
 // What is the significance of declaring this global? I thought all variables
@@ -45,14 +45,14 @@ global	omegaG1 = 0.2;
 omegaG1 :< 1;
 global	omegaG2 = 0.5;
 omegaG2 :< 1;
-global	omegaG3 = 2.0;
-omegaG3 :> 1;
+// XXX O3 global	omegaG3 = 2.0;
+// XXX O3 omegaG3 :> 1;
 
 // So these are the same function calls as earlier but with different inputs.
 // Everything has a G in it, for instance
 PopulateModelMatrix			  ("MGMatrix1G",  nucCF, "t", "omegaG1", "");
 PopulateModelMatrix			  ("MGMatrix2G",  nucCF, "t", "omegaG2", "");
-PopulateModelMatrix			  ("MGMatrix3G",  nucCF, "t", "omegaG3", "");
+// XXX O3 PopulateModelMatrix			  ("MGMatrix3G",  nucCF, "t", "omegaG3", "");
 
 
 
@@ -145,16 +145,16 @@ PrintDescriptiveStats		 ("Branch omega values", omegaStats);
 // a starting point for the local model fitting
 omegaG1						 = omegaStats["2.5%"];
 omegaG2						 = omegaStats["Median"];
-omegaG3						 = omegaStats["97.5%"];
+// XXX O3 omegaG3						 = omegaStats["97.5%"];
 
 // oh yay, more variables named aux
 Paux1 						 = 0.3;
 Paux1 						 :< 1;
-Paux2 						 = 0.4;
-Paux2 						 :< 1;
+// XXX O3 Paux2 						 = 0.4;
+// XXX O3 Paux2 						 :< 1;
 
 global Paux1G 				  = 0.3;
-global Paux2G 				  = 0.4;
+// XXX O3 global Paux2G 				  = 0.4;
 
 
 // Because this totally makes sense. Also, is treeString another magical
@@ -165,10 +165,12 @@ global Paux2G 				  = 0.4;
 // Actually it does in a way, because you are exponentiating the
 // instantaneous transition matrix and multiplying it by the proportion of
 // the overall model that that sub model has been estimated to contribute.
-Model 		MGG		=		  ("Exp(MGMatrix1G)*Paux1G+Exp(MGMatrix2G)*(1-Paux1G)*Paux2G+Exp(MGMatrix3G)*(1-Paux1G)*(1-Paux2G)",codon3x4,EXPLICIT_FORM_MATRIX_EXPONENTIAL);
+// XXX O3 Model 		MGG		=		  ("Exp(MGMatrix1G)*Paux1G+Exp(MGMatrix2G)*(1-Paux1G)*Paux2G+Exp(MGMatrix3G)*(1-Paux1G)*(1-Paux2G)",codon3x4,EXPLICIT_FORM_MATRIX_EXPONENTIAL);
+MGG		=		  ("Exp(MGMatrix1G)*Paux1G+Exp(MGMatrix2G)*(1-Paux1G)",codon3x4,EXPLICIT_FORM_MATRIX_EXPONENTIAL);
 Tree						   mixtureTreeG = treeString;
 
-Model 		MG1		=		  ("Exp(MGMatrix1)*Paux1+Exp(MGMatrix2)*(1-Paux1)*Paux2+Exp(MGMatrix3)*(1-Paux1)*(1-Paux2)",codon3x4,EXPLICIT_FORM_MATRIX_EXPONENTIAL);
+// XXX O3 Model 		MG1		=		  ("Exp(MGMatrix1)*Paux1+Exp(MGMatrix2)*(1-Paux1)*Paux2+Exp(MGMatrix3)*(1-Paux1)*(1-Paux2)",codon3x4,EXPLICIT_FORM_MATRIX_EXPONENTIAL);
+MG1		=		  ("Exp(MGMatrix1)*Paux1+Exp(MGMatrix2)*(1-Paux1)",codon3x4,EXPLICIT_FORM_MATRIX_EXPONENTIAL);
 Tree						   mixtureTree = treeString;
 
 
@@ -186,7 +188,7 @@ ClearConstraints			  (mixtureTreeG);
 omegaG1						 :< 1;
 omegaG2						 :< 1;
 Paux1G 						 :< 1;
-Paux2G 						 :< 1;
+// XXX O3 Paux2G 						 :< 1;
 
 // Some options
 ASSUME_REVERSIBLE_MODELS	  = 1;
@@ -259,20 +261,21 @@ for (k = 0; k < totalBranchCount; k = k+1)
     if (baseOmega > 1)
     {
         ExecuteCommands ("mixtureTree." + bNames[k] + ".omega1 = 0.1;");
-        ExecuteCommands ("mixtureTree." + bNames[k] + ".omega2 = 1;");
-        ExecuteCommands ("mixtureTree." + bNames[k] + ".omega3 = baseOmega;");
+        // XXX O3 ExecuteCommands ("mixtureTree." + bNames[k] + ".omega2 = 1;");
+        ExecuteCommands ("mixtureTree." + bNames[k] + ".omega2 = baseOmega;");
+        // XXX O3 ExecuteCommands ("mixtureTree." + bNames[k] + ".omega3 = baseOmega;");
 
         ExecuteCommands ("mixtureTree." + bNames[k] + ".Paux1 = 0.01;");
-        ExecuteCommands ("mixtureTree." + bNames[k] + ".Paux2 = 0.01;");
+        // XXX O3 ExecuteCommands ("mixtureTree." + bNames[k] + ".Paux2 = 0.01;");
     }
     else
     {
         ExecuteCommands ("mixtureTree." + bNames[k] + ".omega1 = baseOmega;");
         ExecuteCommands ("mixtureTree." + bNames[k] + ".omega2 = 1;");
-        ExecuteCommands ("mixtureTree." + bNames[k] + ".omega3 = 2;");
+        // XXX O3 ExecuteCommands ("mixtureTree." + bNames[k] + ".omega3 = 2;");
 
         ExecuteCommands ("mixtureTree." + bNames[k] + ".Paux1 = 0.98;");
-        ExecuteCommands ("mixtureTree." + bNames[k] + ".Paux2 = 0.5;");
+        // XXX O3 ExecuteCommands ("mixtureTree." + bNames[k] + ".Paux2 = 0.5;");
     }
 }
 
@@ -325,20 +328,25 @@ for	(k = 0; k < totalBranchCount; k = k+1)
     //fprintf (lfOut, CLEAR_FILE, three_LF);
     //LIKELIHOOD_FUNCTION_OUTPUT = 2;
 
-	thisOmega3 = Eval (ref+".omega3");
-	wt3        = Eval ("(1-"+ref+".Paux1)*(1-"+ref+".Paux2)");
+	// XXX O3 thisOmega3 = Eval (ref+".omega3");
+	// XXX O3 wt3        = Eval ("(1-"+ref+".Paux1)*(1-"+ref+".Paux2)");
+	thisOmega2 = Eval (ref+".omega2");
+	wt2        = Eval ("(1-"+ref+".Paux1)");
 
 	pValueByBranch [k][1] = Eval (ref+".omega1");
 	pValueByBranch [k][2] = Eval (ref+".Paux1");
 	pValueByBranch [k][3] = Eval (ref+".omega2");
-	pValueByBranch [k][4] = Eval ("(1-"+ref+".Paux1)*"+ref+".Paux2");
-	pValueByBranch [k][5] = thisOmega3;
-	pValueByBranch [k][6] = wt3;
+	pValueByBranch [k][4] = Eval ("(1-"+ref+".Paux1)");
+	// XXX O3 pValueByBranch [k][4] = Eval ("(1-"+ref+".Paux1)*"+ref+".Paux2");
+	// XXX O3 pValueByBranch [k][5] = thisOmega3;
+	// XXX O3 pValueByBranch [k][6] = wt3;
 
 	fprintf (stdout, "\nNode: ", ref,
 					 "\n\tClass 1: omega = ", Eval (ref+".omega1"), " weight = ", Eval (ref+".Paux1"),
 					 "\n\tClass 2: omega = ", Eval (ref+".omega2"), " weight = ", Eval ("(1-"+ref+".Paux1)*"+ref+".Paux2"),
-					 "\n\tClass 3: omega = ", thisOmega3, " weight = ", wt3 , "\n"
+					 // XXX O3 "\n\tClass 2: omega = ", Eval (ref+".omega2"), " weight = ", Eval ("(1-"+ref+".Paux1)*"+ref+".Paux2"),
+					 "\n"
+					 // XXX O3 "\n\tClass 3: omega = ", thisOmega3, " weight = ", wt3 , "\n"
 					 );
 
 	if (thisOmega3 > 1 && wt3 > 1e-6)
