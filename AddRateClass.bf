@@ -56,7 +56,9 @@ function addRate2BranchNumber(lfID, branchName)
     ExecuteCommands(lfTreeID + "." + branchName + ".omega" + nextOmega + " = .9"); // XXX fix value
     ExecuteCommands(lfTreeID + "." + branchName + ".Paux" + nextOmega + " = " + newProportion); // XXX fix propotion
 
-    for (matrixI = 1; matrixI < nextOmega; matrixI = matrixI + 1)
+    // Build a model matrix for each rate class to be used (in proportion)
+    // in the LF.
+    for (matrixI = 1; matrixI <= nextOmega; matrixI = matrixI + 1)
     {
         ExecuteCommands("PopulateModelMatrix(\"MGMatrix" + matrixI + "\", lfnucCF, \"t\", \"omega" + matrixI + "\", \"\")");
     }
@@ -84,7 +86,7 @@ function addRate2BranchNumber(lfID, branchName)
             matrixString = matrixString + "+";
         }
         // We need the matrix from the rate class
-        matrixString = matrixString + "Exp(MGMatrix" + paramI + ")"; // XXX source MGMatrix's
+        matrixString = matrixString + "Exp(MGMatrix" + paramI + ")";
         // However we don't store the proportion for the last rate class (DOF = # rate classes - 1)
         if (paramI != Abs(currentParams) - 1)
         {
