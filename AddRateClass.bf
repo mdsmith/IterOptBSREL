@@ -11,6 +11,8 @@ function addRate2BranchNumber(lfID, branchName)
     fprintf(stdout, "Branch: \n");
     //ExecuteCommands ( "fprintf(stdout, " + lfTreeID + "." + branchName + ".nonsyn)");
     //ExecuteCommands ( "branch_nsrate = Eval(\"" + lfTreeID + "." + branchName + ".nonsyn)");
+    // XXX so I can add and optimize a rate class. The challenge now is
+    // knowing the name of the rate class to add...
     ExecuteCommands(lfTreeID + "." + branchName + ".omega1 = .9");
     ExecuteCommands(lfTreeID + "." + branchName + ".Paux1 = 1");
     branch_nsrate = Eval(lfTreeID + "." + branchName + ".omega1");
