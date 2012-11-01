@@ -1,5 +1,8 @@
 //VERBOSITY_LEVEL = 0;
 
+//chickenWings = 0.3;
+//GetInformation(numberInfo, chickenWings);
+//fprintf(stdout, numberInfo[0] + "\n");
 
 function addRate2BranchNumber(lfID, branchName)
 {
@@ -11,13 +14,24 @@ function addRate2BranchNumber(lfID, branchName)
     fprintf(stdout, "Branch: \n");
     //ExecuteCommands ( "fprintf(stdout, " + lfTreeID + "." + branchName + ".nonsyn)");
     //ExecuteCommands ( "branch_nsrate = Eval(\"" + lfTreeID + "." + branchName + ".nonsyn)");
-    // XXX so I can add and optimize a rate class. The challenge now is
-    // knowing the name of the rate class to add...
-    ExecuteCommands(lfTreeID + "." + branchName + ".omega1 = .9");
-    ExecuteCommands(lfTreeID + "." + branchName + ".Paux1 = 1");
-    branch_nsrate = Eval(lfTreeID + "." + branchName + ".omega1");
-    fprintf(stdout, branch_nsrate);
-    fprintf(stdout, "\n");
+    presOmegas = 1;
+    nextOmega = 1;
+    for (presOmegas = 1; presOmegas < 6; presOmegas = presOmegas + 1)
+    {
+        ExecuteCommands("GetInformation(omegaInfo, " + lfTreeID + "." + branchName + ".omega" + presOmegas + ")");
+        if (Abs(omegaInfo) == 3)
+        {
+            nextOmega = nextOmega + 1;
+        }
+    }
+    ExecuteCommands(lfTreeID + "." + branchName + ".omega" + nextOmega + " = .9");
+    ExecuteCommands(lfTreeID + "." + branchName + ".Paux" + nextOmega + " = 1");
+    // XXX OK, excellent, I can find out which omega to add. Now I
+    // need to keep track of and harvest the omegas that are already
+    // there so that I may build a new model out of them.
+    //branch_nsrate = Eval(lfTreeID + "." + branchName + ".omega1");
+    //fprintf(stdout, branch_nsrate);
+    //fprintf(stdout, "\n");
 
     lfModel = lfInfoAA["Models"];
     lfModelID = lfModel[0];
