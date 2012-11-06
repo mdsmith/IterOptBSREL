@@ -147,7 +147,6 @@ omegaG1						 = omegaStats["2.5%"];
 omegaG2						 = omegaStats["Median"];
 omegaG3						 = omegaStats["97.5%"];
 
-// oh yay, more variables named aux
 Paux1 						 = 0.3;
 Paux1 						 :< 1;
 Paux2 						 = 0.4;

@@ -14,7 +14,7 @@ function addRate2BranchNumber(lfID, branchName)
 
     lfdsf = lfInfoAA["Datafilters"];
     lfdsfID = lfdsf[0];
-    ExecuteCommands ("HarvestFrequencies (lfnuc3," + dsfID + ", 3, 1, 1)");
+    ExecuteCommands ("HarvestFrequencies (lfnuc3," + lfdsfID + ", 3, 1, 1)");
     lfnucCF = CF3x4 (lfnuc3, GeneticCodeExclusions);
 
 
@@ -44,7 +44,7 @@ function addRate2BranchNumber(lfID, branchName)
             {
                 ExecuteCommands("GetInformation(PauxInfo, " + lfTreeID + "." + branchName + ".Paux" + prevOmega + ")");
                 // Save the proportion (part)
-                ParamProportions[prevOmega] = PauxInfo[0];
+                paramProportions[prevOmega] = PauxInfo[0];
             }
             // Save the rate class rate
             currentParams[presOmegas] = omegaInfo[0];
@@ -52,15 +52,38 @@ function addRate2BranchNumber(lfID, branchName)
             nextOmega = nextOmega + 1;
         }
     }
-    newProportion = paramProportions[Abs(paramProportions)-1] * .9;
-    ExecuteCommands(lfTreeID + "." + branchName + ".omega" + nextOmega + " = .9"); // XXX fix value
-    ExecuteCommands(lfTreeID + "." + branchName + ".Paux" + nextOmega + " = " + newProportion); // XXX fix propotion
+    if (nextOmega = 1)
+    {
+        newProportion = 1.0;
+    }
+    else
+    {
+        newProportion = paramProportions[Abs(paramProportions)-1] * .1;
+        paramProportions[Abs(paramProportions)-1] = paramProportions[Abs(paramProportions)-1] * .9;
+    }
+    //fprintf(stdout, Abs(paramProportion));
+    //fprintf(stdout, Type(Abs(newProportion)));
+    //fprintf(stdout, "\n");
+    ExecuteCommands(lfTreeID + "." + branchName + ".omega" + nextOmega + " = .9;"); // XXX fix value
+    ExecuteCommands(lfTreeID + "." + branchName + ".Paux" + nextOmega + " = " + newProportion + ";"); // XXX fix propotion
+    ExecuteCommands(lfTreeID + "." + branchName + ".Paux" + nextOmega + " :< 1;"); // XXX fix propotion
+    currentParams[nextOmega] = .9;
+    tempIndex = nextOmega - 1;
+    //fprinf(stdout, tempIndex + "\n");
+    //fprintf(stdout, tempIndex);
+    //fprintf(stdout, Type(tempIndex));
+    //fprintf(stdout, "\n");
+    //fprinf(stdout, newProportion + "\n");
+    //fprintf(stdout, newProportion);
+    //fprintf(stdout, Type(newProportion));
+    //fprintf(stdout, "\n");
+    paramProportions[tempIndex] = newProportion;
 
     // Build a model matrix for each rate class to be used (in proportion)
     // in the LF.
     for (matrixI = 1; matrixI <= nextOmega; matrixI = matrixI + 1)
     {
-        ExecuteCommands("PopulateModelMatrix(\"MGMatrix" + matrixI + "\", lfnucCF, \"t\", \"omega" + matrixI + "\", \"\")");
+        ExecuteCommands("PopulateModelMatrix(\"MGMatrix" + matrixI + "\", lfnucCF, \"t\", \"omega" + matrixI + "\", \"\");");
     }
 
     //branch_nsrate = Eval(lfTreeID + "." + branchName + ".omega1");
@@ -73,13 +96,13 @@ function addRate2BranchNumber(lfID, branchName)
     //compatible eqiulibrium frequencies vector.
 
     lfbaseFreqs = lfInfoAA["Base frequencies"];
-    lfbaseFreqsID = lfdsf[0];
+    lfbaseFreqsID = lfbaseFreqs[0];
     //ExecuteCommands("lfdsf = CreateFilter(" + lfdfID + ",3,\"\",\"\",GeneticCodeExclusions)");
 
     // Define the new model
     //ExecuteCommands ("Model BSREL = " + lfModelID);
     matrixString = "";
-    for (paramI = 1; paramI < Abs(currentParams); paramI = paramI + 1)
+    for (paramI = 1; paramI <= Abs(currentParams); paramI = paramI + 1)
     {
         if (paramI > 1)
         {
@@ -94,12 +117,15 @@ function addRate2BranchNumber(lfID, branchName)
         }
         // As we don't store the proportion for the last rate class, we need to be able to determine
         // that proportion from the other proportions. This relationship is used below:
-        for (prevParamI = paramI - 1; paramI > 0; paramI = paramI - 1)
+        for (prevParamI = paramI - 1; prevParamI > 0; prevParamI = prevParamI - 1)
         {
             matrixString = matrixString + "*(1-pPaux" + prevParamI + ")";
         }
     }
-    ExecuteCommands ("Model BSREL = (matrixString, " + lfbaseFreqsID + ", EXPLICIT_FORM_MATRIX_EXPONENTIAL)");
+    fprintf(stdout, "\n");
+    fprintf(stdout, matrixString + "\n");
+    fprintf(stdout, "\n");
+    ExecuteCommands ("Model BSREL = (matrixString, " + lfbaseFreqsID + ", EXPLICIT_FORM_MATRIX_EXPONENTIAL);");
 
     new_tree_string = orig_tree_string;
     //list_of_models {};
@@ -130,7 +156,7 @@ function addRate2BranchNumber(lfID, branchName)
     // implement:
     //Tree new_branch_tree = setModels(orig_treeString, list_of_models);
 
-    ExecuteCommands("LikelihoodFunction newLF = (" + lfdsfID + ", new_branch_tree)");
+    ExecuteCommands("LikelihoodFunction newLF = (" + lfdsfID + ", new_branch_tree);");
 
     return "newLF";
 }
