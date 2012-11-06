@@ -229,6 +229,8 @@ LIKELIHOOD_FUNCTION_OUTPUT = 7;
 fprintf (lfOut, CLEAR_FILE, three_LF);
 LIKELIHOOD_FUNCTION_OUTPUT = 2;
 
+VERBOSITY_LEVEL = 10;
+
 Optimize (res_three_LF,three_LF);
 fprintf(stdout, "\n");
 

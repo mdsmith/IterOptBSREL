@@ -64,9 +64,7 @@ function addRate2BranchNumber(lfID, branchName)
     //fprintf(stdout, Abs(paramProportion));
     //fprintf(stdout, Type(Abs(newProportion)));
     //fprintf(stdout, "\n");
-    ExecuteCommands(lfTreeID + "." + branchName + ".omega" + nextOmega + " = .9;"); // XXX fix value
-    ExecuteCommands(lfTreeID + "." + branchName + ".Paux" + nextOmega + " = " + newProportion + ";"); // XXX fix propotion
-    ExecuteCommands(lfTreeID + "." + branchName + ".Paux" + nextOmega + " :< 1;"); // XXX fix propotion
+    
     currentParams[nextOmega] = .9;
     tempIndex = nextOmega - 1;
     //fprinf(stdout, tempIndex + "\n");
@@ -150,15 +148,13 @@ function addRate2BranchNumber(lfID, branchName)
             //// insert BSREL
         //}
     //}
-    Tree new_branch_tree = new_tree_string;
-    // should this be a modelID string or the model?
-    //list_of_models[branchNumber] = BSREL
-    // implement:
-    //Tree new_branch_tree = setModels(orig_treeString, list_of_models);
+    ExecuteCommands ("Tree `lfTreeID` = `new_tree_string`");
+    ExecuteCommands ("LikelihoodFunction `lfID` = (`lfdsfID`, `lfTreeID`);");
+    ExecuteCommands(lfTreeID + "." + branchName + ".omega" + nextOmega + " = .9;"); // XXX fix value
+    ExecuteCommands(lfTreeID + "." + branchName + ".Paux" + nextOmega + " = " + newProportion + ";"); // XXX fix propotion
+    ExecuteCommands(lfTreeID + "." + branchName + ".Paux" + nextOmega + " :< 1;"); // XXX fix propotion
 
-    ExecuteCommands("LikelihoodFunction newLF = (" + lfdsfID + ", new_branch_tree);");
-
-    return "newLF";
+    return 0;
 }
 
 //function setModels(orig_treeString, list_of_models)
