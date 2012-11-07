@@ -222,7 +222,7 @@ LIKELIHOOD_FUNCTION_OUTPUT = 7;
 fprintf (lfOut, CLEAR_FILE, three_LF);
 LIKELIHOOD_FUNCTION_OUTPUT = 2;
 
-addRate2BranchNumber("three_LF", bNames[0]);
+addRate2Branch("three_LF", bNames[0]);
 
 lfOut	= csvFilePath + ".treePlusRate.fit";
 LIKELIHOOD_FUNCTION_OUTPUT = 7;

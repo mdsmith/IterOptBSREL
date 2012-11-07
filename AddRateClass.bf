@@ -1,13 +1,8 @@
 //VERBOSITY_LEVEL = 0;
 
-//chickenWings = 0.3;
-//GetInformation(numberInfo, chickenWings);
-//fprintf(stdout, numberInfo[0] + "\n");
-
-function addRate2BranchNumber(lfID, branchName)
+function addRate2Branch(lfID, branchName)
 {
     ExecuteCommands ("GetString(lfInfoAA, " + lfID + ", -1)");
-    //fprintf(stdout, lfInfoAA);
     lfTree = lfInfoAA["Trees"];
     lfTreeID = lfTree[0];
     ExecuteCommands ("orig_tree_string = Format(" + lfTreeID + ",1,1)");
@@ -17,14 +12,8 @@ function addRate2BranchNumber(lfID, branchName)
     ExecuteCommands ("HarvestFrequencies (lfnuc3," + lfdsfID + ", 3, 1, 1)");
     lfnucCF = CF3x4 (lfnuc3, GeneticCodeExclusions);
 
-
-    //fprintf(stdout, "Branch: \n");
-    //ExecuteCommands ( "fprintf(stdout, " + lfTreeID + "." + branchName + ".nonsyn)");
-    //ExecuteCommands ( "branch_nsrate = Eval(\"" + lfTreeID + "." + branchName + ".nonsyn)");
-
     currentParams = {};
     paramProportions = {};
-
 
     presOmegas = 1;
     nextOmega = 1;
@@ -61,20 +50,9 @@ function addRate2BranchNumber(lfID, branchName)
         newProportion = paramProportions[Abs(paramProportions)-1] * .1;
         paramProportions[Abs(paramProportions)-1] = paramProportions[Abs(paramProportions)-1] * .9;
     }
-    //fprintf(stdout, Abs(paramProportion));
-    //fprintf(stdout, Type(Abs(newProportion)));
-    //fprintf(stdout, "\n");
-    
+
     currentParams[nextOmega] = .9;
     tempIndex = nextOmega - 1;
-    //fprinf(stdout, tempIndex + "\n");
-    //fprintf(stdout, tempIndex);
-    //fprintf(stdout, Type(tempIndex));
-    //fprintf(stdout, "\n");
-    //fprinf(stdout, newProportion + "\n");
-    //fprintf(stdout, newProportion);
-    //fprintf(stdout, Type(newProportion));
-    //fprintf(stdout, "\n");
     paramProportions[tempIndex] = newProportion;
 
     // Build a model matrix for each rate class to be used (in proportion)
@@ -84,21 +62,12 @@ function addRate2BranchNumber(lfID, branchName)
         ExecuteCommands("PopulateModelMatrix(\"MGMatrix" + matrixI + "\", lfnucCF, \"t\", \"omega" + matrixI + "\", \"\");");
     }
 
-    //branch_nsrate = Eval(lfTreeID + "." + branchName + ".omega1");
-    //fprintf(stdout, branch_nsrate);
-    //fprintf(stdout, "\n");
-
     lfModel = lfInfoAA["Models"];
     lfModelID = lfModel[0];
-    //Parameter(s) missing in Model definition. Must have a matrix and a
-    //compatible eqiulibrium frequencies vector.
 
     lfbaseFreqs = lfInfoAA["Base frequencies"];
     lfbaseFreqsID = lfbaseFreqs[0];
-    //ExecuteCommands("lfdsf = CreateFilter(" + lfdfID + ",3,\"\",\"\",GeneticCodeExclusions)");
 
-    // Define the new model
-    //ExecuteCommands ("Model BSREL = " + lfModelID);
     matrixString = "";
     for (paramI = 1; paramI <= Abs(currentParams); paramI = paramI + 1)
     {
@@ -126,13 +95,8 @@ function addRate2BranchNumber(lfID, branchName)
     ExecuteCommands ("Model BSREL = (matrixString, " + lfbaseFreqsID + ", EXPLICIT_FORM_MATRIX_EXPONENTIAL);");
 
     new_tree_string = orig_tree_string;
-    //list_of_models {};
-    // correct import?:
-    //totalBranchCount = BranchCount(orig_tree) + TipCount(orig_tree);
-    //bNames = BranchName (orig_tree, -1);
     fprintf(stdout, new_tree_string);
     fprintf(stdout, "\n");
-    //UseModel(MG94); // test to make sure this works...
     ExecuteCommands ("UseModel(" + lfModelID + ")");
     fprintf(stdout, new_tree_string);
     fprintf(stdout, "\n");
@@ -141,13 +105,6 @@ function addRate2BranchNumber(lfID, branchName)
     fprintf(stdout, new_tree_string);
     fprintf(stdout, "\n");
 
-    //for (k = 0; k < Abs(bNames); k = k+1)
-    //{
-        //if (bNames[k] == branchName)
-        //{
-            //// insert BSREL
-        //}
-    //}
     ExecuteCommands ("Tree `lfTreeID` = `new_tree_string`");
     ExecuteCommands ("LikelihoodFunction `lfID` = (`lfdsfID`, `lfTreeID`);");
     ExecuteCommands(lfTreeID + "." + branchName + ".omega" + nextOmega + " = .9;"); // XXX fix value
@@ -156,17 +113,6 @@ function addRate2BranchNumber(lfID, branchName)
 
     return 0;
 }
-
-//function setModels(orig_treeString, list_of_models)
-//{
-    //Tree tbrT = orig_treeString;
-    //for (k = 0; k < Abs(list_of_models);
-    //{
-        //
-    //}
-//
-    //return tbrT
-//}
 
 
 
