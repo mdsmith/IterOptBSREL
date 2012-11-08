@@ -1,7 +1,8 @@
 //VERBOSITY_LEVEL = 0;
 
-function addRate2Branch(lfID, branchName, defaultModel)
+function addRate2Branch(lfID, branchName, modelList)
 {
+    defaultModel = modelList["1Rate"];
     ExecuteCommands ("GetString(lfInfoAA, " + lfID + ", -1)");
     lfTree = lfInfoAA["Trees"];
     lfTreeID = lfTree[0];
@@ -24,18 +25,6 @@ function addRate2Branch(lfID, branchName, defaultModel)
         // Otherwise it will be a matrix of length one (I think).
         ExecuteCommands("GetInformation(omegaInfo, " + lfTreeID + "." + branchName + ".omega" + presOmegas + ")");
         // Check to see if this previous omega exists.
-        /*
-        fprintf(stdout, "\n");
-        fprintf(stdout, "\n");
-        fprintf(stdout, "\n");
-        fprintf(stdout, "Omega info: ");
-        fprintf(stdout, omegaInfo);
-        fprintf(stdout, "\n");
-        fprintf(stdout, Columns(omegaInfo));
-        fprintf(stdout, "\n");
-        fprintf(stdout, "\n");
-        fprintf(stdout, "\n");
-        */
         if (Columns(omegaInfo) == 3)
         {
             // Alright, it does. Now lets get information regarding its proportion (remember,
@@ -53,18 +42,16 @@ function addRate2Branch(lfID, branchName, defaultModel)
             nextOmega = nextOmega + 1;
         }
     }
-    /*
-    fprintf(stdout, "\n");
-    fprintf(stdout, "\n");
-    fprintf(stdout, "\n");
-    fprintf(stdout, "NextOmega: ");
-    fprintf(stdout, nextOmega);
-    fprintf(stdout, "\n");
-    fprintf(stdout, "\n");
-    fprintf(stdout, "\n");
-    */
     if (nextOmega == 1)
     {
+        if (modelList["1Rate"] == 0)
+        {
+            // make the first two rate classes
+        }
+        else
+        {
+            
+        }
         initOmega = 0;
         initProportion = 0.9;
         newProportion = 0.1;
@@ -96,9 +83,6 @@ function addRate2Branch(lfID, branchName, defaultModel)
         ExecuteCommands("PopulateModelMatrix(\"MGMatrix" + matrixI + "\", lfnucCF, \"t\", \"omega" + matrixI + "\", \"\");");
     }
 
-    fprintf(stdout, "\n");
-    fprintf(stdout, lfInfoAA);
-    fprintf(stdout, "\n");
     lfModel = lfInfoAA["Models"];
     lfModelID = lfModel[0];
 

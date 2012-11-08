@@ -63,7 +63,9 @@ PopulateModelMatrix			  ("MGMatrixLocal",  nucCF, "syn", "", "nonsyn");
 codon3x4					= BuildCodonFrequencies (nucCF);
 // I'm not sure I get this syntax. Is this some sort of constructor, or
 // tuple?
+modelList = {};
 Model		MGL				= (MGMatrixLocal, codon3x4, 0);
+modelList["1Rate"] = "MGL";
 
 LoadFunctionLibrary			  ("queryTree");
 
@@ -231,7 +233,7 @@ Export(three_LF_bak, three_LF);
 
 while (res_three_LF[1][0] > lastRes)
 {
-    addRate2Branch("three_LF", bNames[0], "MGL");
+    addRate2Branch("three_LF", bNames[0], modelList);
     omegaNumber = omegaNumber + 1;
 
     lfOut	= csvFilePath + ".treePlusRate" + omegaNumber + ".fit";
