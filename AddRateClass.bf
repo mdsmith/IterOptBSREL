@@ -1,6 +1,6 @@
 //VERBOSITY_LEVEL = 0;
 
-function addRate2Branch(lfID, branchName)
+function addRate2Branch(lfID, branchName, defaultModel)
 {
     ExecuteCommands ("GetString(lfInfoAA, " + lfID + ", -1)");
     lfTree = lfInfoAA["Trees"];
@@ -24,7 +24,19 @@ function addRate2Branch(lfID, branchName)
         // Otherwise it will be a matrix of length one (I think).
         ExecuteCommands("GetInformation(omegaInfo, " + lfTreeID + "." + branchName + ".omega" + presOmegas + ")");
         // Check to see if this previous omega exists.
-        if (Abs(omegaInfo) == 3)
+        /*
+        fprintf(stdout, "\n");
+        fprintf(stdout, "\n");
+        fprintf(stdout, "\n");
+        fprintf(stdout, "Omega info: ");
+        fprintf(stdout, omegaInfo);
+        fprintf(stdout, "\n");
+        fprintf(stdout, Columns(omegaInfo));
+        fprintf(stdout, "\n");
+        fprintf(stdout, "\n");
+        fprintf(stdout, "\n");
+        */
+        if (Columns(omegaInfo) == 3)
         {
             // Alright, it does. Now lets get information regarding its proportion (remember,
             // the number of proportions is (the number of rate classes) - 1.
@@ -41,9 +53,31 @@ function addRate2Branch(lfID, branchName)
             nextOmega = nextOmega + 1;
         }
     }
-    if (nextOmega = 1)
+    /*
+    fprintf(stdout, "\n");
+    fprintf(stdout, "\n");
+    fprintf(stdout, "\n");
+    fprintf(stdout, "NextOmega: ");
+    fprintf(stdout, nextOmega);
+    fprintf(stdout, "\n");
+    fprintf(stdout, "\n");
+    fprintf(stdout, "\n");
+    */
+    if (nextOmega == 1)
     {
-        newProportion = 1.0;
+        initOmega = 0;
+        initProportion = 0.9;
+        newProportion = 0.1;
+        srate = Eval (lfTreeID + "." + branchName + ".syn");
+        nsrate = Eval (lfTreeID + "." + branchName + ".nonsyn");
+        if (srate > 0)
+        {
+            initOmega = Min (10, nsrate/srate);
+        }
+        else
+        {
+            initOmega = 10;
+        }
     }
     else
     {
@@ -62,6 +96,9 @@ function addRate2Branch(lfID, branchName)
         ExecuteCommands("PopulateModelMatrix(\"MGMatrix" + matrixI + "\", lfnucCF, \"t\", \"omega" + matrixI + "\", \"\");");
     }
 
+    fprintf(stdout, "\n");
+    fprintf(stdout, lfInfoAA);
+    fprintf(stdout, "\n");
     lfModel = lfInfoAA["Models"];
     lfModelID = lfModel[0];
 
@@ -86,7 +123,7 @@ function addRate2Branch(lfID, branchName)
         // that proportion from the other proportions. This relationship is used below:
         for (prevParamI = paramI - 1; prevParamI > 0; prevParamI = prevParamI - 1)
         {
-            matrixString = matrixString + "*(1-pPaux" + prevParamI + ")";
+            matrixString = matrixString + "*(1-Paux" + prevParamI + ")";
         }
     }
     fprintf(stdout, "\n");
@@ -97,7 +134,8 @@ function addRate2Branch(lfID, branchName)
     new_tree_string = orig_tree_string;
     fprintf(stdout, new_tree_string);
     fprintf(stdout, "\n");
-    ExecuteCommands ("UseModel(" + lfModelID + ")");
+    //ExecuteCommands ("UseModel(" + lfModelID + ")");
+    ExecuteCommands ("UseModel(" + defaultModel + ")");
     fprintf(stdout, new_tree_string);
     fprintf(stdout, "\n");
 
@@ -107,9 +145,23 @@ function addRate2Branch(lfID, branchName)
 
     ExecuteCommands ("Tree `lfTreeID` = `new_tree_string`");
     ExecuteCommands ("LikelihoodFunction `lfID` = (`lfdsfID`, `lfTreeID`);");
-    ExecuteCommands(lfTreeID + "." + branchName + ".omega" + nextOmega + " = .9;"); // XXX fix value
-    ExecuteCommands(lfTreeID + "." + branchName + ".Paux" + nextOmega + " = " + newProportion + ";"); // XXX fix propotion
-    ExecuteCommands(lfTreeID + "." + branchName + ".Paux" + nextOmega + " :< 1;"); // XXX fix propotion
+    if (nextOmega == 1)
+    {
+        ExecuteCommands(lfTreeID + "." + branchName + ".omega" + nextOmega + " = " + initOmega + ";"); // XXX fix value
+        ExecuteCommands(lfTreeID + "." + branchName + ".Paux" + nextOmega + " = " + initProportion + ";"); // XXX fix propotion
+        ExecuteCommands(lfTreeID + "." + branchName + ".Paux" + nextOmega + " :< 1;"); // XXX fix propotion
+        nextOmega = nextOmega + 1;
+
+        ExecuteCommands(lfTreeID + "." + branchName + ".omega" + nextOmega + " = .9;"); // XXX fix value
+        ExecuteCommands(lfTreeID + "." + branchName + ".Paux" + nextOmega + " = " + newProportion + ";"); // XXX fix propotion
+        ExecuteCommands(lfTreeID + "." + branchName + ".Paux" + nextOmega + " :< 1;"); // XXX fix propotion
+    }
+    else
+    {
+        ExecuteCommands(lfTreeID + "." + branchName + ".omega" + nextOmega + " = .9;"); // XXX fix value
+        ExecuteCommands(lfTreeID + "." + branchName + ".Paux" + nextOmega + " = " + newProportion + ";"); // XXX fix propotion
+        ExecuteCommands(lfTreeID + "." + branchName + ".Paux" + nextOmega + " :< 1;"); // XXX fix propotion
+    }
 
     return 0;
 }

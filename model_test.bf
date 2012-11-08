@@ -222,22 +222,35 @@ LIKELIHOOD_FUNCTION_OUTPUT = 7;
 fprintf (lfOut, CLEAR_FILE, three_LF);
 LIKELIHOOD_FUNCTION_OUTPUT = 2;
 
-addRate2Branch("three_LF", bNames[0]);
+//for (k = 0; k < totalBranchCount; k = k+1)
 
-lfOut	= csvFilePath + ".treePlusRate.fit";
-LIKELIHOOD_FUNCTION_OUTPUT = 7;
-fprintf (lfOut, CLEAR_FILE, three_LF);
-LIKELIHOOD_FUNCTION_OUTPUT = 2;
+lastRes = res_three_LF[1][0];
+omegaNumber = 1;
 
-VERBOSITY_LEVEL = 10;
+Export(three_LF_bak, three_LF);
 
-Optimize (res_three_LF,three_LF);
-fprintf(stdout, "\n");
+while (res_three_LF[1][0] <= lastRes)
+{
+    addRate2Branch("three_LF", bNames[0], "MGL");
+    omegaNumber = omegaNumber + 1;
 
-lfOut	= csvFilePath + ".optTreePlusRate.fit";
-LIKELIHOOD_FUNCTION_OUTPUT = 7;
-fprintf (lfOut, CLEAR_FILE, three_LF);
-LIKELIHOOD_FUNCTION_OUTPUT = 2;
+    lfOut	= csvFilePath + ".treePlusRate" + omegaNumber + ".fit";
+    LIKELIHOOD_FUNCTION_OUTPUT = 7;
+    fprintf (lfOut, CLEAR_FILE, three_LF);
+    LIKELIHOOD_FUNCTION_OUTPUT = 2;
+
+    VERBOSITY_LEVEL = 10;
+
+    Optimize (res_three_LF,three_LF);
+    fprintf(stdout, "\n");
+
+    lfOut	= csvFilePath + ".optTreePlusRate" + omegaNumber + ".fit";
+    LIKELIHOOD_FUNCTION_OUTPUT = 7;
+    fprintf (lfOut, CLEAR_FILE, three_LF);
+    LIKELIHOOD_FUNCTION_OUTPUT = 2;
+
+    lastRes = res_three_LF[1][0];
+}
 
 /*
 for (k = 0; k < totalBranchCount; k = k+1)
