@@ -224,12 +224,12 @@ LIKELIHOOD_FUNCTION_OUTPUT = 2;
 
 //for (k = 0; k < totalBranchCount; k = k+1)
 
-lastRes = res_three_LF[1][0];
+lastRes = res_three_LF[1][0] - 1.0;
 omegaNumber = 1;
 
 Export(three_LF_bak, three_LF);
 
-while (res_three_LF[1][0] <= lastRes)
+while (res_three_LF[1][0] > lastRes)
 {
     addRate2Branch("three_LF", bNames[0], "MGL");
     omegaNumber = omegaNumber + 1;
