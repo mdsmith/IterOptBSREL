@@ -220,7 +220,7 @@ for (k = 0; k < totalBranchCount; k = k+1)
     inputOptions = {};
     inputOptions["0"] = lfOut;
     inputOptions["1"] = "" + k;
-    ExecuteAFile("DeltaOmega.bf", inputOptions);
+    //ExecuteAFile("DeltaOmega.bf", inputOptions);
 
     // Go go gadget initialization routines!
     if (k == 0)

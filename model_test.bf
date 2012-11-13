@@ -139,7 +139,7 @@ omegaStats					 = GatherDescriptiveStats (pValueByBranch[-1][0]);
 
 fprintf						 (stdout, "\nLog L = ", localLL, " with ", localParams, " degrees of freedom\n");
 
-PrintDescriptiveStats		 ("Branch omega values", omegaStats);
+//PrintDescriptiveStats		 ("Branch omega values", omegaStats);
 
 // We are now translating from the global fitting to the local prior.
 
@@ -224,32 +224,58 @@ LIKELIHOOD_FUNCTION_OUTPUT = 2;
 
 //for (k = 0; k < totalBranchCount; k = k+1)
 
-lastRes = res_three_LF[1][0] - 1.0;
-omegaNumber = 1;
 
 Export(three_LF_bak, three_LF);
 
-while (res_three_LF[1][0] > lastRes)
+origRes = res_three_LF[1][0] - 1.0;
+
+fprintf(stdout, bNames);
+fprintf(stdout, "\n");
+
+for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
 {
-    addRate2Branch("three_LF", bNames[0], "MGL");
-    omegaNumber = omegaNumber + 1;
+    lastRes = origRes;
+    omegaNumber = 1;
+    //while (res_three_LF[1][0] > lastRes)
 
-    lfOut	= csvFilePath + ".treePlusRate" + omegaNumber + ".fit";
-    LIKELIHOOD_FUNCTION_OUTPUT = 7;
-    fprintf (lfOut, CLEAR_FILE, three_LF);
-    LIKELIHOOD_FUNCTION_OUTPUT = 2;
-
-    VERBOSITY_LEVEL = 10;
-
-    Optimize (res_three_LF,three_LF);
+    fprintf(stdout, "I'm adding working on branch ");
+    fprintf(stdout, bNames[branchI]);
     fprintf(stdout, "\n");
 
-    lfOut	= csvFilePath + ".optTreePlusRate" + omegaNumber + ".fit";
-    LIKELIHOOD_FUNCTION_OUTPUT = 7;
-    fprintf (lfOut, CLEAR_FILE, three_LF);
-    LIKELIHOOD_FUNCTION_OUTPUT = 2;
+    for (omegaNumber = 1; omegaNumber < 3; omegaNumber = omegaNumber + 1)
+    {
+        fprintf(stdout, "I'm adding omega ");
+        fprintf(stdout, omegaNumber);
+        fprintf(stdout, "\n");
+        fprintf(stdout, "To branch ");
+        fprintf(stdout, bNames[branchI]);
+        fprintf(stdout, "\n");
+        fprintf(stdout, "branchI = ");
+        fprintf(stdout, branchI);
+        fprintf(stdout, "\n");
+        addRate2Branch("three_LF", nucCF, bNames[branchI], "MGL");
+        fprintf(stdout, "Done adding the omega\n");
+        fprintf(stdout, "\n");
+        //omegaNumber = omegaNumber + 1;
 
-    lastRes = res_three_LF[1][0];
+        lfOut	= csvFilePath + ".treePlusRate." + bNames[branchI] + "." + omegaNumber + ".fit";
+        LIKELIHOOD_FUNCTION_OUTPUT = 7;
+        fprintf (lfOut, CLEAR_FILE, three_LF);
+        LIKELIHOOD_FUNCTION_OUTPUT = 2;
+
+        VERBOSITY_LEVEL = 10;
+        //VERBOSITY_LEVEL = 0;
+
+        Optimize (res_three_LF,three_LF);
+        fprintf(stdout, "\n");
+
+        lfOut	= csvFilePath + ".optTreePlusRate." + bNames[branchI] + "." + omegaNumber + ".fit";
+        LIKELIHOOD_FUNCTION_OUTPUT = 7;
+        fprintf (lfOut, CLEAR_FILE, three_LF);
+        LIKELIHOOD_FUNCTION_OUTPUT = 2;
+
+        lastRes = res_three_LF[1][0];
+    }
 }
 
 /*
