@@ -1,0 +1,28 @@
+The HyPhy batch language uses a generally C-like syntax to create and
+interact with objects in a HyPhy runtime environment. Variables are loosely
+typed while Objects are declared and initialized normally. There are a few
+syntactic peculiarities to be aware of:
+
+1. References to objects can be stored in two ways: as a reference to the
+object in the runtime or as a string whose referential nature needs to be
+evaluated by placing what would normally be a regular HyPhy batch language
+statement into the ExecuteCommands function as a string. The object ID that
+you have in the string is then concatenated into the statement using regular
+HBL string modification operators. This can cause some confusion when objects
+are passed as function parameters or held in arrays.
+
+2. All namespace scoping is by default global. This can lead to substantial
+off target effects. It is often best to use obscure (but self-commenting)
+namign schemes or to pass in a variable namespace, with which certain
+functions are compatible.
+
+3. There are often a number of different ways of achieving a goal. Writing
+and reading Likelihood functions to file, for instance.
+
+4. Global variables will appear or exist (as part of the runtime) without
+having been declared or imported. These will at times contain the output of a
+function, or partial input (e.g. optional options) to a function.
+
+5. Passing input to a batch file executed with ExecuteAFile() is challenging.
+It is often necessary to pipe information over stdout/stdin, which can be
+done with several different functions.
