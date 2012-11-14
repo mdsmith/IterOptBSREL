@@ -12,6 +12,9 @@ LoadFunctionLibrary("BranchSiteTemplate");
 LoadFunctionLibrary("AddRateClass.bf");
 
 
+modelList = {};
+
+
 DataSet 			ds 				= ReadDataFile(PROMPT_FOR_FILE);
 DataSetFilter 		dsf 			= CreateFilter(ds,3,"","",GeneticCodeExclusions);
 //GetInformation(infotainer, dsf); XXX no longer needed
@@ -229,33 +232,16 @@ Export(three_LF_bak, three_LF);
 
 origRes = res_three_LF[1][0] - 1.0;
 
-fprintf(stdout, bNames);
-fprintf(stdout, "\n");
-
 for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
 {
     lastRes = origRes;
     omegaNumber = 1;
     //while (res_three_LF[1][0] > lastRes)
 
-    fprintf(stdout, "I'm adding working on branch ");
-    fprintf(stdout, bNames[branchI]);
-    fprintf(stdout, "\n");
 
     for (omegaNumber = 1; omegaNumber < 3; omegaNumber = omegaNumber + 1)
     {
-        fprintf(stdout, "I'm adding omega ");
-        fprintf(stdout, omegaNumber);
-        fprintf(stdout, "\n");
-        fprintf(stdout, "To branch ");
-        fprintf(stdout, bNames[branchI]);
-        fprintf(stdout, "\n");
-        fprintf(stdout, "branchI = ");
-        fprintf(stdout, branchI);
-        fprintf(stdout, "\n");
-        addRate2Branch("three_LF", nucCF, bNames[branchI], "MGL");
-        fprintf(stdout, "Done adding the omega\n");
-        fprintf(stdout, "\n");
+        addRate2Branch("three_LF", nucCF, bNames[branchI], "MGL", modelList);
         //omegaNumber = omegaNumber + 1;
 
         lfOut	= csvFilePath + ".treePlusRate." + bNames[branchI] + "." + omegaNumber + ".fit";

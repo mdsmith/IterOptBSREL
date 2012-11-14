@@ -1,34 +1,26 @@
 //VERBOSITY_LEVEL = 0;
 
 // Testing with nucCF passed in
-function addRate2Branch(lfID, nucCF, branchName, defaultModel)
+function addRate2Branch(lfID, nucCF, branchName, defaultModel, modelList)
 {
-    //fprintf(stdout, "\nline5\n");
     ExecuteCommands ("GetString(lfInfoAA, " + lfID + ", -1)");
     lfTree = lfInfoAA["Trees"];
     lfTreeID = lfTree[0];
     ExecuteCommands ("orig_tree_string = Format(" + lfTreeID + ",1,1)");
-    //fprintf(stdout, "\nline10\n");
 
     lfdsf = lfInfoAA["Datafilters"];
     lfdsfID = lfdsf[0];
-    //fprintf(stdout, "\nline15\n");
     ExecuteCommands ("HarvestFrequencies (lfnuc3," + lfdsfID + ", 3, 1, 1)");
-    //fprintf(stdout, "\nline17\n");
     //lfnucCF = CF3x4 (lfnuc3, GeneticCodeExclusions); // XXX BREAKS HERE
     lfnucCF = nucCF;
-    //fprintf(stdout, "\nline19\n");
 
     currentParams = {};
     paramProportions = {};
 
-    //fprintf(stdout, "\nline20\n");
     numOmegas = 1;
     nextOmega = 1;
     // Check and store previous Omegas
     openOmegaFound = 0;
-    //for (presOmegas = 1; presOmegas < 6; presOmegas = presOmegas + 1)
-    //fprintf(stdout, "\nline26\n");
     while (openOmegaFound != 1)
     {
         // Grab the previous omega. If it exists omegaInfo will be a matrix of length three.
@@ -62,10 +54,6 @@ function addRate2Branch(lfID, nucCF, branchName, defaultModel)
     // become omega1 and there needs to be an additional omega2 rate class.
     // This will of course mean nextOmega = 2, and this need to make sense
     // going forward
-    fprintf(stdout, "\n");
-    fprintf(stdout, "The next omega to add is ");
-    fprintf(stdout, nextOmega);
-    fprintf(stdout, "\n");
     if (nextOmega == 1)
     {
         currentParams[1] = 10;
@@ -86,13 +74,6 @@ function addRate2Branch(lfID, nucCF, branchName, defaultModel)
         paramProportions[nextOmega - 1] = newProportion;
         currentParams[nextOmega] = .9;
     }
-    fprintf(stdout, "\n");
-    fprintf(stdout, "The next omega to add is ");
-    fprintf(stdout, nextOmega);
-    fprintf(stdout, "\n");
-
-
-    // XXX are all of the previous Paux's being updated
 
     // Build a model matrix for each rate class to be used (in proportion)
     // in the LF.
@@ -101,9 +82,6 @@ function addRate2Branch(lfID, nucCF, branchName, defaultModel)
         ExecuteCommands("PopulateModelMatrix(\"MGMatrix" + matrixI + "\", lfnucCF, \"t\", \"omega" + matrixI + "\", \"\");");
     }
 
-    //fprintf(stdout, "\n");
-    //fprintf(stdout, lfInfoAA);
-    //fprintf(stdout, "\n");
     lfModel = lfInfoAA["Models"];
     lfModelID = lfModel[0];
 
@@ -131,11 +109,16 @@ function addRate2Branch(lfID, nucCF, branchName, defaultModel)
             matrixString = matrixString + "*(1-Paux" + prevParamI + ")";
         }
     }
-    fprintf(stdout, "\n");
-    fprintf(stdout, "Matrix string: \n");
-    fprintf(stdout, matrixString + "\n");
-    fprintf(stdout, "\n");
     ExecuteCommands ("Model BSREL = (matrixString, " + lfbaseFreqsID + ", EXPLICIT_FORM_MATRIX_EXPONENTIAL);");
+
+
+
+    ExecuteCommands ("Model BSREL" + nextOmega + " = (matrixString, " + lfbaseFreqsID + ", EXPLICIT_FORM_MATRIX_EXPONENTIAL);");
+
+    modelList[nextOmega] = "BSREL" + nextOmega;
+
+
+
 
     new_tree_string = orig_tree_string;
     fprintf(stdout, new_tree_string);
