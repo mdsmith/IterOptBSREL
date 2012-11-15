@@ -1,1 +1,14 @@
-README coming soon!
+IterOptBSREL is a set of batch files for use with HyPhy
+
+The primary batch file is AddRateClass.bf, the AddRate2Branch function in
+which will add a single rate class to a single branch and properly create a
+new Likelihood Function for further optimization.
+
+The model_test.bf file is a script for testing the features of
+AddRateClass.bf. It will also serve as a usage exmaple. Future users should
+focus on incorporating the functions in AddRateClass.bf, not using
+model_test.bf directly.
+
+Simplex1Seq_reduced.nex is a test data file.
+
+tutorial.txt is a collection of HBL oddities for future reference.
