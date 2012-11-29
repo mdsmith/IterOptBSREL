@@ -109,16 +109,22 @@ function addRate2Branch(lfID, nucCF, branchName, defaultModel, modelList)
             matrixString = matrixString + "*(1-Paux" + prevParamI + ")";
         }
     }
-    ExecuteCommands ("Model BSREL = (matrixString, " + lfbaseFreqsID + ", EXPLICIT_FORM_MATRIX_EXPONENTIAL);");
+    //ExecuteCommands ("Model BSREL = (matrixString, " + lfbaseFreqsID + ", EXPLICIT_FORM_MATRIX_EXPONENTIAL);");
 
 
 
-    ExecuteCommands ("Model BSREL" + nextOmega + " = (matrixString, " + lfbaseFreqsID + ", EXPLICIT_FORM_MATRIX_EXPONENTIAL);");
 
-    modelList[nextOmega] = "BSREL" + nextOmega;
-
-
-
+    // XXX There is a pretty good chance that much of the code above is
+    // similarly conditioned, but sorting it from what must be computed to
+    // set branch parameters is for another time.
+    if (modelList[nextOmega] == 0)
+    {
+        ExecuteCommands ("Model BSREL" + nextOmega + " = (matrixString, " + lfbaseFreqsID + ", EXPLICIT_FORM_MATRIX_EXPONENTIAL);");
+        modelList[nextOmega] = "BSREL" + nextOmega;
+        //fprintf(stdout, "Next item in the model list");
+        //fprintf(stdout, modelList[nextOmega + 1]);
+        //fprintf(stdout, "\n");
+    }
 
     new_tree_string = orig_tree_string;
     fprintf(stdout, new_tree_string);
@@ -128,7 +134,9 @@ function addRate2Branch(lfID, nucCF, branchName, defaultModel, modelList)
     fprintf(stdout, new_tree_string);
     fprintf(stdout, "\n");
 
-    new_tree_string = new_tree_string^{{branchName, branchName + "{BSREL}"}};
+    //new_tree_string = new_tree_string^{{branchName, branchName + "{BSREL}"}};
+    new_tree_string = new_tree_string^{{branchName, branchName + "{BSREL" +
+    nextOmega + "}"}};
     fprintf(stdout, new_tree_string);
     fprintf(stdout, "\n");
 
