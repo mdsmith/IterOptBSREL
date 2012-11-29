@@ -241,7 +241,11 @@ for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
 
     for (omegaNumber = 1; omegaNumber < 3; omegaNumber = omegaNumber + 1)
     {
+        fprintf(stdout, "\n");
         addRate2Branch("three_LF", nucCF, bNames[branchI], "MGL", modelList);
+        fprintf(stdout, "Current Model list:\n");
+        fprintf(stdout, modelList);
+        fprintf(stdout, "\n");
         //omegaNumber = omegaNumber + 1;
 
         lfOut	= csvFilePath + ".treePlusRate." + bNames[branchI] + "." + omegaNumber + ".fit";
@@ -249,7 +253,7 @@ for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
         fprintf (lfOut, CLEAR_FILE, three_LF);
         LIKELIHOOD_FUNCTION_OUTPUT = 2;
 
-        VERBOSITY_LEVEL = 10;
+        VERBOSITY_LEVEL = 1;
         //VERBOSITY_LEVEL = 0;
 
         Optimize (res_three_LF,three_LF);
