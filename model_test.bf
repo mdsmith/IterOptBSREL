@@ -206,8 +206,8 @@ VERBOSITY_LEVEL               = 1;
 // Yay new LF
 // So this is the likelihood function. But there is no "Optimize()" call...
 // yet. There wasn't earlier either, but there is one later that takes this
-// as the second parameter (XXX look into the Optimize function)
-LikelihoodFunction three_LF   = (dsf,mixtureTree);
+// as the second parameter (look into the Optimize function)
+LikelihoodFunction three_LF  = (dsf,mixtureTree);
 
 //-------------------------------------------------------------------------
 // So at this point we have the MG94 model. Now we will go through the
@@ -229,6 +229,10 @@ LIKELIHOOD_FUNCTION_OUTPUT = 2;
 
 //for (k = 0; k < totalBranchCount; k = k+1)
 
+
+iter_likelihood = 0; // Determined after Optimize
+iter_samples = 0; // Known, for now the # of codons * the number of sites XXX
+iter_parameters = 0; // Known, but can be determined after Optimize
 
 Export(three_LF_bak, three_LF);
 
@@ -260,6 +264,9 @@ for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
 
         Optimize (res_three_LF,three_LF);
         fprintf(stdout, "\n");
+
+        iter_likelihood = res_three_LF[1][0];
+        iter_parameters = res_three_LF[1][1];
 
         lfOut	= csvFilePath + ".optTreePlusRate." + bNames[branchI] + "." + omegaNumber + ".fit";
         LIKELIHOOD_FUNCTION_OUTPUT = 7;
@@ -606,3 +613,9 @@ function restoreLF (key, value)
 	return 0;
 }
 
+//------------------------------------------------------------------------------------------------------------------------
+function BIC (likelihood, num_params, num_samples)
+{
+    BICtbr = -2 * log(likelihood) + num_params * log(num_samples);
+    return BICtbr;
+}
