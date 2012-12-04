@@ -68,6 +68,8 @@ codon3x4					= BuildCodonFrequencies (nucCF);
 // tuple?
 Model		MGL				= (MGMatrixLocal, codon3x4, 0);
 
+modelList[0] = "MGL";
+
 LoadFunctionLibrary			  ("queryTree");
 
 // I know a few of these words (they just print thinks, as far as I can tell)

@@ -1,4 +1,5 @@
 //VERBOSITY_LEVEL = 0;
+LoadFunctionLibrary("DistributionFunctions.bf");
 
 // Testing with nucCF passed in
 function addRate2Branch(lfID, nucCF, branchName, defaultModel, modelList)
@@ -69,10 +70,17 @@ function addRate2Branch(lfID, nucCF, branchName, defaultModel, modelList)
     }
     else
     {
-        newProportion = paramProportions[nextOmega - 2] * .1;
-        paramProportions[nextOmega - 2] = 1 - newProportion;
-        paramProportions[nextOmega - 1] = newProportion;
-        currentParams[nextOmega] = .9;
+        //newProportion = paramProportions[nextOmega - 2] * .1;
+        //paramProportions[nextOmega - 2] = 1 - newProportion;
+        //paramProportions[nextOmega - 1] = newProportion;
+        //currentParams[nextOmega] = .9;
+        for (prevPropI = 0; prevPropI < nextOmega - 2; prevPropI = prevPropI + 1)
+        {
+            paramProportions[prevPropI] = paramProportions[prevPropI] * 0.99;
+        }
+        paramProportions[nextOmega -1] = 0.01;
+        currentParams[nextOmega] = .9;  // XXX this should be selected
+                                        // intelligently
     }
 
     // Build a model matrix for each rate class to be used (in proportion)
