@@ -79,8 +79,14 @@ function addRate2Branch(lfID, nucCF, branchName, defaultModel, modelList)
             paramProportions[prevPropI] = paramProportions[prevPropI] * 0.99;
         }
         paramProportions[nextOmega -1] = 0.01;
-        currentParams[nextOmega] = .9;  // XXX this should be selected
+        currentParams[nextOmega] = currentParams[nextOmega - 1] * 2;  // XXX this should be selected
                                         // intelligently
+        // XXX So to get what this value should be, I need to completely make
+        // the LF using constrained values in a loop, optimize them, then
+        // choose a specific one and remake the LF. I also need to use the
+        // previous LF's output (keep it constant, how do I do that?). And
+        // even more challenging: how do I do that in a global name space
+        // with no clear way of duplicating objects...
     }
 
     // Build a model matrix for each rate class to be used (in proportion)
@@ -119,9 +125,6 @@ function addRate2Branch(lfID, nucCF, branchName, defaultModel, modelList)
     }
     //ExecuteCommands ("Model BSREL = (matrixString, " + lfbaseFreqsID + ", EXPLICIT_FORM_MATRIX_EXPONENTIAL);");
 
-
-
-
     // XXX There is a pretty good chance that much of the code above is
     // similarly conditioned, but sorting it from what must be computed to
     // set branch parameters is for another time.
@@ -151,6 +154,8 @@ function addRate2Branch(lfID, nucCF, branchName, defaultModel, modelList)
     ExecuteCommands ("Tree `lfTreeID` = `new_tree_string`");
     ExecuteCommands ("LikelihoodFunction `lfID` = (`lfdsfID`, `lfTreeID`);");
 
+// XXX so this is where it counts. this is where I need to have a value by.
+// That means that I may also
     for (omegaI = 1; omegaI <= nextOmega; omegaI = omegaI + 1)
     {
         ExecuteCommands(lfTreeID + "." + branchName + ".omega" + omegaI + " = " + currentParams[omegaI] + ";");
@@ -161,27 +166,8 @@ function addRate2Branch(lfID, nucCF, branchName, defaultModel, modelList)
         }
     }
 
-/*
-    if (nextOmega == 1)
-    {
-        ExecuteCommands(lfTreeID + "." + branchName + ".omega" + nextOmega + " = " + initOmega + ";"); // XXX fix value
-        ExecuteCommands(lfTreeID + "." + branchName + ".Paux" + nextOmega + " = " + initProportion + ";"); // XXX fix propotion
-        ExecuteCommands(lfTreeID + "." + branchName + ".Paux" + nextOmega + " :< 1;"); // XXX fix propotion
-        nextOmega = nextOmega + 1;
-
-        ExecuteCommands(lfTreeID + "." + branchName + ".omega" + nextOmega + " = .9;"); // XXX fix value
-        ExecuteCommands(lfTreeID + "." + branchName + ".Paux" + nextOmega + " = " + newProportion + ";"); // XXX fix propotion
-        ExecuteCommands(lfTreeID + "." + branchName + ".Paux" + nextOmega + " :< 1;"); // XXX fix propotion
-    }
-    else
-    {
-        ExecuteCommands(lfTreeID + "." + branchName + ".omega" + nextOmega + " = .9;"); // XXX fix value
-        ExecuteCommands(lfTreeID + "." + branchName + ".Paux" + nextOmega + " = " + newProportion + ";"); // XXX fix propotion
-        ExecuteCommands(lfTreeID + "." + branchName + ".Paux" + nextOmega + " :< 1;"); // XXX fix propotion
-    }
-*/
-
     return 0;
 }
+
 
 return 0;
