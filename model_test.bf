@@ -17,6 +17,17 @@ modelList = {};
 
 DataSet 			ds 				= ReadDataFile(PROMPT_FOR_FILE);
 DataSetFilter 		dsf 			= CreateFilter(ds,3,"","",GeneticCodeExclusions);
+
+GetInformation(dsf_seq_array, dsf);// XXX
+//fprintf(stdout, dsf_seq_array);// XXX
+//fprintf(stdout, "\n");
+column_count = Columns(dsf_seq_array);
+//fprintf(stdout, "Sequences: " + column_count);
+//fprintf(stdout, "\n");
+algn_len = Abs(dsf_seq_array[0]);
+//fprintf(stdout, "Alignment Length: " + algn_len);
+//fprintf(stdout, "\n");
+
 //GetInformation(infotainer, dsf); XXX no longer needed
 //fprintf(stdout, "The original model!"); XXX no longer needed
 //fprintf(stdout, infotainer); XXX no longer needed
@@ -229,10 +240,14 @@ LIKELIHOOD_FUNCTION_OUTPUT = 2;
 
 //for (k = 0; k < totalBranchCount; k = k+1)
 
-
 iter_likelihood = 0; // Determined after Optimize
-iter_samples = 0; // Known, for now the # of codons * the number of sites XXX
+//iter_samples = column_count * algn_len; // Known, for now the # of codons * the number of sites XXX
+iter_samples = algn_len; // Known, for now the # of codons * the number of sites XXX
 iter_parameters = 0; // Known, but can be determined after Optimize
+init_parameters = 0;
+
+GetInformation(dsf_seq_array, dsf);
+//fprintf(stdout, dsf_seq_array);
 
 Export(three_LF_bak, three_LF);
 
@@ -247,11 +262,11 @@ for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
 
     for (omegaNumber = 1; omegaNumber < 3; omegaNumber = omegaNumber + 1)
     {
-        fprintf(stdout, "\n");
+        //fprintf(stdout, "\n");
         addRate2Branch("three_LF", nucCF, bNames[branchI], "MGL", modelList);
-        fprintf(stdout, "Current Model list:\n");
-        fprintf(stdout, modelList);
-        fprintf(stdout, "\n");
+        //fprintf(stdout, "Current Model list:\n");
+        //fprintf(stdout, modelList);
+        //fprintf(stdout, "\n");
         //omegaNumber = omegaNumber + 1;
 
         lfOut	= csvFilePath + ".treePlusRate." + bNames[branchI] + "." + omegaNumber + ".fit";
@@ -266,7 +281,26 @@ for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
         fprintf(stdout, "\n");
 
         iter_likelihood = res_three_LF[1][0];
-        iter_parameters = res_three_LF[1][1];
+        //iter_parameters = res_three_LF[1][1];
+        if (branchI == 0 && omegaNumber == 1)
+        {
+            init_parameters = res_three_LF[1][1];
+        }
+        iter_parameters = init_parameters + (2 * omegaNumber) + 2;
+
+        iter_bic = calcBIC(iter_likelihood, iter_parameters, iter_samples);
+        //fprintf(stdout, "\n");
+        //fprintf(stdout, "This iterations likelihood: " + iter_likelihood);
+        //fprintf(stdout, "\n");
+        //fprintf(stdout, "This iterations sample count: " + iter_samples);
+        //fprintf(stdout, "\n");
+        //log_iter_samples_test = Log(iter_samples);
+        //fprintf(stdout, "This iterations log sample count: " + log_iter_samples_test);
+        //fprintf(stdout, "\n");
+        //fprintf(stdout, "This iterations param count: " + iter_parameters);
+        fprintf(stdout, "\n");
+        fprintf(stdout, "This iterations BIC: " + iter_bic);
+        fprintf(stdout, "\n");
 
         lfOut	= csvFilePath + ".optTreePlusRate." + bNames[branchI] + "." + omegaNumber + ".fit";
         LIKELIHOOD_FUNCTION_OUTPUT = 7;
@@ -614,8 +648,18 @@ function restoreLF (key, value)
 }
 
 //------------------------------------------------------------------------------------------------------------------------
-function BIC (likelihood, num_params, num_samples)
+function calcBIC(iter_likelihood, iter_num_params, iter_num_samples)
 {
-    BICtbr = -2 * log(likelihood) + num_params * log(num_samples);
+    log_lik = iter_likelihood;
+    BICtbr = -2 * log_lik;
+    log_sam = Log(iter_num_samples);
+    BICtbr = BICtbr + (iter_num_params * log_sam);
+    //fprintf(stdout, "\n");
+    //fprintf(stdout, "This iterations log likelihood: " + log_lik);
+    //fprintf(stdout, "\n");
+    //fprintf(stdout, "This iterations log sample count: " + log_sam);
+    //fprintf(stdout, "\n");
+    //fprintf(stdout, "This iterations BICtbr: " + BICtbr);
+    //fprintf(stdout, "\n");
     return BICtbr;
 }

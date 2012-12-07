@@ -138,12 +138,12 @@ function addRate2Branch(lfID, nucCF, branchName, defaultModel, modelList)
     }
 
     new_tree_string = orig_tree_string;
-    fprintf(stdout, new_tree_string);
-    fprintf(stdout, "\n");
+    //fprintf(stdout, new_tree_string);
+    //fprintf(stdout, "\n");
     //ExecuteCommands ("UseModel(" + lfModelID + ")");
     ExecuteCommands ("UseModel(" + defaultModel + ")");
-    fprintf(stdout, new_tree_string);
-    fprintf(stdout, "\n");
+    //fprintf(stdout, new_tree_string);
+    //fprintf(stdout, "\n");
 
     //new_tree_string = new_tree_string^{{branchName, branchName + "{BSREL}"}};
     new_tree_string = new_tree_string^{{branchName, branchName + "{BSREL" +
