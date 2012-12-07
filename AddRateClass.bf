@@ -30,7 +30,7 @@ function addRate2Branch(lfID, nucCF, branchName, defaultModel, modelList)
         // Check to see if this previous omega exists.
         if (Columns(omegaInfo) == 3)
         {
-            fprintf(stdout, "\nomega found!\n");
+            //fprintf(stdout, "\nomega found!\n");
             // Alright, it does. Now lets get information regarding its proportion (remember,
             // the number of proportions is (the number of rate classes) - 1.
             prevOmega = numOmegas - 1;

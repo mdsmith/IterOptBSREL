@@ -8,7 +8,7 @@ LoadFunctionLibrary("GrabBag");
 LoadFunctionLibrary("dSdNTreeTools");
 LoadFunctionLibrary("CF3x4");
 LoadFunctionLibrary("BranchSiteTemplate");
-//LoadFunctionLibrary("DeltaOmega.bf"); XXX no longer needed
+//LoadFunctionLibrary("DeltaOmega.bf");
 LoadFunctionLibrary("AddRateClass.bf");
 
 
@@ -18,56 +18,17 @@ modelList = {};
 DataSet 			ds 				= ReadDataFile(PROMPT_FOR_FILE);
 DataSetFilter 		dsf 			= CreateFilter(ds,3,"","",GeneticCodeExclusions);
 
-GetInformation(dsf_seq_array, dsf);// XXX
-//fprintf(stdout, dsf_seq_array);// XXX
-//fprintf(stdout, "\n");
-column_count = Columns(dsf_seq_array);
-//fprintf(stdout, "Sequences: " + column_count);
-//fprintf(stdout, "\n");
+GetInformation(dsf_seq_array, dsf);
+taxa_count = Columns(dsf_seq_array);
 algn_len = Abs(dsf_seq_array[0]);
-//fprintf(stdout, "Alignment Length: " + algn_len);
-//fprintf(stdout, "\n");
 
-//GetInformation(infotainer, dsf); XXX no longer needed
-//fprintf(stdout, "The original model!"); XXX no longer needed
-//fprintf(stdout, infotainer); XXX no longer needed
 
 // Are these the nucleotide frequences?
 // If so, are they harvested but left in dsf? Or are they now in nuc3?
 HarvestFrequencies	(nuc3, dsf, 3, 1, 1);
 
-
-// These are the rate class priors for the global fitting
-//omega1 = 0.2; XXX no longer needed
-//omega2 = 0.5; XXX no longer needed
-//omega3 = 1.0; XXX no longer needed
-
 // I don't know what this is yet, but nuc3 is passed in as an argument here.
 nucCF						= CF3x4	(nuc3, GeneticCodeExclusions);
-
-// Why is this called multiple times? Should these function names be
-// imperative hints at their side effects?
-//PopulateModelMatrix			  ("MGMatrix1",  nucCF, "t", "omega1", "");
-//PopulateModelMatrix			  ("MGMatrix2",  nucCF, "t", "omega2", "");
-//PopulateModelMatrix			  ("MGMatrix3",  nucCF, "t", "omega3", "");
-
-// What is the difference between omega1 and omegaG1?
-// What is the significance of declaring this global? I thought all variables
-// were in the global namespace?
-//global	omegaG1 = 0.2;
-// I'm assuming this is a bound such that omegaG1 cannot exceed 1?
-//omegaG1 :< 1;
-//global	omegaG2 = 0.5;
-//omegaG2 :< 1;
-//global	omegaG3 = 2.0;
-//omegaG3 :> 1;
-
-// So these are the same function calls as earlier but with different inputs.
-// Everything has a G in it, for instance
-//PopulateModelMatrix			  ("MGMatrix1G",  nucCF, "t", "omegaG1", "");
-//PopulateModelMatrix			  ("MGMatrix2G",  nucCF, "t", "omegaG2", "");
-//PopulateModelMatrix			  ("MGMatrix3G",  nucCF, "t", "omegaG3", "");
-
 
 // Why is this one separate? Matrix Local with syn and nonsyn? hmmm
 PopulateModelMatrix			  ("MGMatrixLocal",  nucCF, "syn", "", "nonsyn");
@@ -79,7 +40,7 @@ codon3x4					= BuildCodonFrequencies (nucCF);
 // tuple?
 Model		MGL				= (MGMatrixLocal, codon3x4, 0);
 
-modelList[0] = "MGL";
+modelList[1] = "MGL";
 
 LoadFunctionLibrary			  ("queryTree");
 
@@ -157,39 +118,7 @@ fprintf						 (stdout, "\nLog L = ", localLL, " with ", localParams, " degrees o
 
 //PrintDescriptiveStats		 ("Branch omega values", omegaStats);
 
-// We are now translating from the global fitting to the local prior.
-
-// Awesome, so here we are using the omega stats from the global fitting as
-// a starting point for the local model fitting
-//omegaG1						 = omegaStats["2.5%"];
-//omegaG2						 = omegaStats["Median"];
-//omegaG3						 = omegaStats["97.5%"];
-
-// oh yay, more variables named aux
-//Paux1 						 = 0.3;
-//Paux1 						 :< 1;
-//Paux2 						 = 0.4;
-//Paux2 						 :< 1;
-//
-//global Paux1G 				  = 0.3;
-//global Paux2G 				  = 0.4;
-
-
-// Because this totally makes sense. Also, is treeString another magical
-// global variable?
-// I'm not sure if MGG is a transition matrix or a model in the traditional
-// sense... but regardless we are generating a model and a tree using our
-// Global priors.
-// Actually it does in a way, because you are exponentiating the
-// instantaneous transition matrix and multiplying it by the proportion of
-// the overall model that that sub model has been estimated to contribute.
-//Model 		MGG		=		  ("Exp(MGMatrix1G)*Paux1G+Exp(MGMatrix2G)*(1-Paux1G)*Paux2G+Exp(MGMatrix3G)*(1-Paux1G)*(1-Paux2G)",codon3x4,EXPLICIT_FORM_MATRIX_EXPONENTIAL);
-//Tree						   mixtureTreeG = treeString;
-//
-//Model 		MG1		=		  ("Exp(MGMatrix1)*Paux1+Exp(MGMatrix2)*(1-Paux1)*Paux2+Exp(MGMatrix3)*(1-Paux1)*(1-Paux2)",codon3x4,EXPLICIT_FORM_MATRIX_EXPONENTIAL);
 Tree						   mixtureTree = treeString;
-
-
 
 // Say what? are we saving parameters into temptorary variables or something?
 //ReplicateConstraint 		  ("this1.?.t:=this2.?.syn",mixtureTreeG,givenTree);
@@ -199,20 +128,10 @@ ReplicateConstraint 		  ("this1.?.t:=this2.?.syn",mixtureTree,givenTree);
 ClearConstraints			  (mixtureTree);
 //ClearConstraints			  (mixtureTreeG);
 
-// Why are these bound down here? Are they affected by the side effects of
-// one of the above functions?
-//omegaG1						 :< 1;
-//omegaG2						 :< 1;
-//Paux1G 						 :< 1;
-//Paux2G 						 :< 1;
-
 // Some options
 ASSUME_REVERSIBLE_MODELS	  = 1;
 
 VERBOSITY_LEVEL               = 1;
-
-
-//LikelihoodFunction global_LF  = (dsf, mixtureTreG);
 
 // Yay new LF
 // So this is the likelihood function. But there is no "Optimize()" call...
@@ -241,8 +160,8 @@ LIKELIHOOD_FUNCTION_OUTPUT = 2;
 //for (k = 0; k < totalBranchCount; k = k+1)
 
 iter_likelihood = 0; // Determined after Optimize
-//iter_samples = column_count * algn_len; // Known, for now the # of codons * the number of sites XXX
-iter_samples = algn_len; // Known, for now the # of codons * the number of sites XXX
+//iter_samples = taxa_count * algn_len; // Known, for now the # of codons * the number of sites
+iter_samples = algn_len;
 iter_parameters = 0; // Known, but can be determined after Optimize
 init_parameters = 0;
 
@@ -253,14 +172,31 @@ Export(three_LF_bak, three_LF);
 
 origRes = res_three_LF[1][0] - 1.0;
 
+
+best_models = {};
+
+for (taxI = 0; taxI < totalBranchCount; taxI = taxI + 1)
+{
+    best_models[taxI] = 1;
+}
+
 for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
 {
+
+    fprintf(stdout, "\n");
+    fprintf(stdout, "New branch: \n");
     lastRes = origRes;
     omegaNumber = 1;
+
+    better_bic = 1;
+    last_bic = 100000000;
+
+    bic_run_count = 0;
+
     //while (res_three_LF[1][0] > lastRes)
-
-
-    for (omegaNumber = 1; omegaNumber < 3; omegaNumber = omegaNumber + 1)
+    //for (omegaNumber = 1; omegaNumber < 3; omegaNumber = omegaNumber + 1)
+    //while (last_BIC < 0 || iter_bic < last_BIC)
+    while (better_bic == 1)
     {
         //fprintf(stdout, "\n");
         addRate2Branch("three_LF", nucCF, bNames[branchI], "MGL", modelList);
@@ -274,7 +210,7 @@ for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
         fprintf (lfOut, CLEAR_FILE, three_LF);
         LIKELIHOOD_FUNCTION_OUTPUT = 2;
 
-        VERBOSITY_LEVEL = 1;
+        VERBOSITY_LEVEL = 10; // 10 prints EVERYTHING
         //VERBOSITY_LEVEL = 0;
 
         Optimize (res_three_LF,three_LF);
@@ -289,16 +225,6 @@ for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
         iter_parameters = init_parameters + (2 * omegaNumber) + 2;
 
         iter_bic = calcBIC(iter_likelihood, iter_parameters, iter_samples);
-        //fprintf(stdout, "\n");
-        //fprintf(stdout, "This iterations likelihood: " + iter_likelihood);
-        //fprintf(stdout, "\n");
-        //fprintf(stdout, "This iterations sample count: " + iter_samples);
-        //fprintf(stdout, "\n");
-        //log_iter_samples_test = Log(iter_samples);
-        //fprintf(stdout, "This iterations log sample count: " + log_iter_samples_test);
-        //fprintf(stdout, "\n");
-        //fprintf(stdout, "This iterations param count: " + iter_parameters);
-        fprintf(stdout, "\n");
         fprintf(stdout, "This iterations BIC: " + iter_bic);
         fprintf(stdout, "\n");
 
@@ -308,242 +234,26 @@ for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
         LIKELIHOOD_FUNCTION_OUTPUT = 2;
 
         lastRes = res_three_LF[1][0];
+        if (iter_bic == last_bic)
+        {
+            bic_run_count = bic_run_count + 1;
+        }
+        if ((iter_bic > last_bic) || (bic_run_count > 2))
+        {
+            fprintf(stdout, "Done with this branch...\n");
+            better_bic = 0;
+        }
+        else
+        {
+            best_models[branchI] = best_models[branchI] + 1;
+        }
+        last_bic = iter_bic;
     }
+    fprintf(stdout, "\n");
 }
-
-/*
-for (k = 0; k < totalBranchCount; k = k+1)
-{
-    // I'd like to be able to write out a new tree at every step so that I
-    // can inspect the parameters. This requires that the trees are written
-    // out in the DeltaOmega.bf, which I haven't implemented yet. Uncomment
-    // this when it happens. XXX
-    lfOut	= csvFilePath + ".optTree." + k + ".fit";
-    LIKELIHOOD_FUNCTION_OUTPUT = 7;
-    fprintf (lfOut, CLEAR_FILE, three_LF);
-    LIKELIHOOD_FUNCTION_OUTPUT = 2;
-    lfOut	= csvFilePath + ".optTree.0.fit";
-    inputOptions = {};
-    inputOptions["0"] = lfOut;
-    inputOptions["1"] = "" + k;
-    ExecuteAFile("DeltaOmega.bf", inputOptions);
-
-    // Go go gadget initialization routines!
-    if (k == 0)
-    {
-        expr            = Eval("BranchLength(givenTree,\""+bNames[0]+";EXPECTED_NUMBER_OF_SUBSTITUTIONS\")");
-        syn             = 1; nonsyn = 0;
-        synM            = Eval(expr);
-        syn             = 0; nonsyn = 1;
-        nonsynM         = Eval(expr);
-    }
-
- 	srate  = Eval ("givenTree." + bNames[k] + ".syn");
-	nsrate = Eval ("givenTree." + bNames[k] + ".nonsyn");
-    bl = Eval("BranchLength(givenTree,\""+bNames[k]+"\")")*3;
-
-    if (srate > 0)
-    {
-        baseOmega = nsrate/srate;
-    }
-    else
-    {
-        baseOmega = 10000;
-    }
-
-    bl = bl / (synM + nonsynM * baseOmega);
-
-    // These look like the same commands that I'm seeing in the rest of this
-    // HBL file. Why are they in the ExecuteCommands framework?
-    // so here we go. This is the magic. We are adding the omega variables
-    // described above to the branches. Awesome. So this is what I need to
-    // replicate in the external file.
-    ExecuteCommands ("mixtureTree." + bNames[k] + ".t = bl");
-    ExecuteCommands ("mixtureTree." + bNames[k] + ".omega1 :< 1;");
-	ExecuteCommands ("mixtureTree." + bNames[k] + ".omega2 :< 1;");
-    if (baseOmega > 1)
-    {
-        ExecuteCommands ("mixtureTree." + bNames[k] + ".omega1 = 0.1;");
-        ExecuteCommands ("mixtureTree." + bNames[k] + ".omega2 = 1;");
-        ExecuteCommands ("mixtureTree." + bNames[k] + ".omega3 = baseOmega;");
-
-        ExecuteCommands ("mixtureTree." + bNames[k] + ".Paux1 = 0.01;");
-        ExecuteCommands ("mixtureTree." + bNames[k] + ".Paux2 = 0.01;");
-    }
-    else
-    {
-        ExecuteCommands ("mixtureTree." + bNames[k] + ".omega1 = baseOmega;");
-        ExecuteCommands ("mixtureTree." + bNames[k] + ".omega2 = 1;");
-        ExecuteCommands ("mixtureTree." + bNames[k] + ".omega3 = 2;");
-
-        ExecuteCommands ("mixtureTree." + bNames[k] + ".Paux1 = 0.98;");
-        ExecuteCommands ("mixtureTree." + bNames[k] + ".Paux2 = 0.5;");
-    }
-}
-
-
-VERBOSITY_LEVEL = 1;
-USE_LAST_RESULTS = 1;
-OPTIMIZATION_METHOD = 0;
-
-// NOW DO THE ACTUAL LOCAL FITTING!!!! I don't see evidence of this really
-// being done with the global model. How come?
-fprintf 					  (stdout, "[PHASE 2] Fitting the full LOCAL alternative model (no constraints)\n");
-Optimize					  (res_three_LF,three_LF);
-fprintf						  (stdout,"\n",three_LF);
-
-
-
-lfOut	= csvFilePath + ".fit";
-// So LIKELIHOOD_FUNCTION_OUTPUT is a hidden parameter to something?
-LIKELIHOOD_FUNCTION_OUTPUT = 7;
-fprintf (lfOut, CLEAR_FILE, three_LF);
-LIKELIHOOD_FUNCTION_OUTPUT = 2;
-
-
-
-// So at this point the optimization stuff is done.
-for	(k = 0; k < totalBranchCount; k = k+1)
-{
-	ref = "mixtureTree."+bNames[k];
-
-
-
-    //Dataset ds = ReadDataFile(lfOut);
-    //DataSetFilter dsf = CreateFilter(ds,3,"","",GeneticCodeExclusions);
-    //HarvestFrequencies (nuc3, dsf, 3, 1, 1);
-    //nucCF = CF3x4(nuc3, GeneticCodeExclusions);
-    //LikelihoodFunction new_LF = (dsf, mixtureTree);
-
-    //lfOut	= csvFilePath + ".export.fit";
-    //Export(lfOut, three_LF);
-
-
-    //optimize_branch (lfOut);
-    //changeLF (lfOut);
-    //LIKELIHOOD_FUNCTION_OUTPUT = 7;
-    //fprintf (lfOut, CLEAR_FILE, three_LF);
-    //LIKELIHOOD_FUNCTION_OUTPUT = 2;
-    //_stashLF ["restoreLF"][""];
-    //lfOut	= csvFilePath + ".restore.after.fit";
-    //LIKELIHOOD_FUNCTION_OUTPUT = 7;
-    //fprintf (lfOut, CLEAR_FILE, three_LF);
-    //LIKELIHOOD_FUNCTION_OUTPUT = 2;
-
-	thisOmega3 = Eval (ref+".omega3");
-	wt3        = Eval ("(1-"+ref+".Paux1)*(1-"+ref+".Paux2)");
-
-	pValueByBranch [k][1] = Eval (ref+".omega1");
-	pValueByBranch [k][2] = Eval (ref+".Paux1");
-	pValueByBranch [k][3] = Eval (ref+".omega2");
-	pValueByBranch [k][4] = Eval ("(1-"+ref+".Paux1)*"+ref+".Paux2");
-	pValueByBranch [k][5] = thisOmega3;
-	pValueByBranch [k][6] = wt3;
-
-	fprintf (stdout, "\nNode: ", ref,
-					 "\n\tClass 1: omega = ", Eval (ref+".omega1"), " weight = ", Eval (ref+".Paux1"),
-					 "\n\tClass 2: omega = ", Eval (ref+".omega2"), " weight = ", Eval ("(1-"+ref+".Paux1)*"+ref+".Paux2"),
-					 "\n\tClass 3: omega = ", thisOmega3, " weight = ", wt3 , "\n"
-					 );
-
-	if (thisOmega3 > 1 && wt3 > 1e-6)
-	{
-		fprintf (stdout, "...Testing for selection at this branch\n");
-        //lfOut	= csvFilePath + ".lf.before." + k + ".fit";
-        //LIKELIHOOD_FUNCTION_OUTPUT = 7;
-        //fprintf (lfOut, CLEAR_FILE, three_LF);
-        //LIKELIHOOD_FUNCTION_OUTPUT = 2;
-		_stashLF = saveLF ("three_LF");
-        //lfOut	= csvFilePath + ".lf.after." + k + ".fit";
-        //LIKELIHOOD_FUNCTION_OUTPUT = 7;
-        //fprintf (lfOut, CLEAR_FILE, three_LF);
-        //LIKELIHOOD_FUNCTION_OUTPUT = 2;
-
-        // Another round of optimization to test for selection at this branch
-		ExecuteCommands ("mixtureTree." + bNames[k] + ".omega3 := 1");
-		Optimize					  (res_three_current,three_LF);
-
-        // Ahah, the p-aux variables are weight related
-		fprintf (stdout, "\nNode: ", ref,
-						 "\n\tClass 1: omega = ", Eval (ref+".omega1"), " weight = ", Eval (ref+".Paux1"),
-						 "\n\tClass 2: omega = ", Eval (ref+".omega2"), " weight = ", Eval ("(1-"+ref+".Paux1)*"+ref+".Paux2"),
-						 "\n\tClass 3: omega = ", Eval (ref+".omega3"), " weight = ", Eval ("(1-"+ref+".Paux1)*(1-"+ref+".Paux2)"), "\n"
-						 );
-		pValueByBranch[k][7]			  = 2*(res_three_LF[1][0] - res_three_current[1][0]);
-		pValueByBranch[k][8]			  = (1-CChi2 (pValueByBranch[k][7],1))*.5;
-		fprintf (stdout, "\np-value = ", pValueByBranch[k][8],"\n\n", three_LF, "\n");
-
-		ExecuteCommands ("mixtureTree." + bNames[k] + ".omega3 :< 1e26");
-
-		if (pValueByBranch[k][7] < (-0.5))
-		{
-			fprintf 					  (stdout, "[PHASE 2/REPEAT] Detected a convergence problem; refitting the LOCAL alternative model with new starting values\n");
-			lfOut	= csvFilePath + ".fit";
-            // And another branch, but only if in an error state
-			Optimize					  (res_three_LF,three_LF);
-			LIKELIHOOD_FUNCTION_OUTPUT = 7;
-			fprintf (lfOut, CLEAR_FILE, three_LF);
-			LIKELIHOOD_FUNCTION_OUTPUT = 2;
-			_stashLF = saveLF ("three_LF");
-			k = 0;
-		}
-		else
-		{
-			//lfOut	= csvFilePath + ".restore.before.fit";
-            //fprintf (stdout, "in this thing because the p-value is > -.5\n");
-			//LIKELIHOOD_FUNCTION_OUTPUT = 7;
-            //fprintf (lfOut, CLEAR_FILE, three_LF);
-			//LIKELIHOOD_FUNCTION_OUTPUT = 2;
-			_stashLF ["restoreLF"][""];
-			//lfOut	= csvFilePath + ".restore.after.fit";
-			//LIKELIHOOD_FUNCTION_OUTPUT = 7;
-            //fprintf (lfOut, CLEAR_FILE, three_LF);
-			//LIKELIHOOD_FUNCTION_OUTPUT = 2;
-		}
-	}
-	else
-	{
-		pValueByBranch[k][8] = 1.0;
-	}
-}
-
-// I'm assuming this is used as a hidden parameter to a later function
-OPTIMIZATION_METHOD = 4;
-
-
-pValueSorter = {totalBranchCount,2};
-pValueSorter = pValueSorter["_MATRIX_ELEMENT_ROW_*(_MATRIX_ELEMENT_COLUMN_==0)+pValueByBranch[_MATRIX_ELEMENT_ROW_][8]*(_MATRIX_ELEMENT_COLUMN_==1)"];
-pValueSorter = pValueSorter % 1;
-pValueSorter = pValueSorter["_MATRIX_ELEMENT_VALUE_*(_MATRIX_ELEMENT_COLUMN_==0)+_MATRIX_ELEMENT_VALUE_*(totalBranchCount-_MATRIX_ELEMENT_ROW_)*(_MATRIX_ELEMENT_COLUMN_==1)"];
-
-fprintf (stdout,"\n\nSummary of branches under episodic selection:\n");
-hasBranchesUnderSelection = 0;
-
-pthreshold = 0.05;
-
-for		(k = 0; k < totalBranchCount; k = k+1)
-{
-	pValueByBranch[pValueSorter[k][0]][9] = Min (1,pValueSorter[k][1]);
-	if (pValueSorter[k][1] <= pthreshold)
-	{
-		fprintf (stdout, "\t", bNames[pValueSorter[k][0]], " p = ", pValueByBranch[pValueSorter[k][0]][9], "\n");
-		hasBranchesUnderSelection += 1;
-	}
-}
-
-
-if (hasBranchesUnderSelection == 0)
-{
-	fprintf (stdout, "\tNo branches found to be under selection at p <= ", threshold, "\n");
-}
-
-
-for		(k = 0; k < totalBranchCount; k = k+1)
-{
-	fprintf (csvFilePath, "\n", bNames[k], ",", Join(",",pValueByBranch[k][-1]));
-}
-fprintf (csvFilePath, CLOSE_FILE);
-*/
+fprintf(stdout, "\n");
+fprintf(stdout, best_models);
+fprintf(stdout, "\n");
 
 //---- TREE RENDERING -----
 // Pretty self explanatory
@@ -654,12 +364,5 @@ function calcBIC(iter_likelihood, iter_num_params, iter_num_samples)
     BICtbr = -2 * log_lik;
     log_sam = Log(iter_num_samples);
     BICtbr = BICtbr + (iter_num_params * log_sam);
-    //fprintf(stdout, "\n");
-    //fprintf(stdout, "This iterations log likelihood: " + log_lik);
-    //fprintf(stdout, "\n");
-    //fprintf(stdout, "This iterations log sample count: " + log_sam);
-    //fprintf(stdout, "\n");
-    //fprintf(stdout, "This iterations BICtbr: " + BICtbr);
-    //fprintf(stdout, "\n");
     return BICtbr;
 }
