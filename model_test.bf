@@ -203,7 +203,7 @@ for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
         //fprintf(stdout, "Current Model list:\n");
         //fprintf(stdout, modelList);
         //fprintf(stdout, "\n");
-        //omegaNumber = omegaNumber + 1;
+        omegaNumber = omegaNumber + 1;
 
         lfOut	= csvFilePath + ".treePlusRate." + bNames[branchI] + "." + omegaNumber + ".fit";
         LIKELIHOOD_FUNCTION_OUTPUT = 7;
@@ -225,6 +225,12 @@ for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
         iter_parameters = init_parameters + (2 * omegaNumber) + 2;
 
         iter_bic = calcBIC(iter_likelihood, iter_parameters, iter_samples);
+        fprintf(stdout, "This iterations likelihood: " + iter_likelihood);
+        fprintf(stdout, "\n");
+        fprintf(stdout, "This iterations parameter count: " + iter_parameters);
+        fprintf(stdout, "\n");
+        fprintf(stdout, "This iterations sample count: " + iter_samples);
+        fprintf(stdout, "\n");
         fprintf(stdout, "This iterations BIC: " + iter_bic);
         fprintf(stdout, "\n");
 
