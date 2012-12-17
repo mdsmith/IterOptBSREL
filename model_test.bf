@@ -210,7 +210,7 @@ for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
         fprintf (lfOut, CLEAR_FILE, three_LF);
         LIKELIHOOD_FUNCTION_OUTPUT = 2;
 
-        VERBOSITY_LEVEL = 1; // 10 prints EVERYTHING
+        VERBOSITY_LEVEL = 10; // 10 prints EVERYTHING
         //VERBOSITY_LEVEL = 0;
 
         Optimize (res_three_LF,three_LF);
@@ -218,7 +218,7 @@ for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
 
         iter_likelihood = res_three_LF[1][0];
         //iter_parameters = res_three_LF[1][1];
-        if (branchI == 0 && omegaNumber == 1)
+        if (branchI == 0 && omegaNumber == 2)
         {
             init_parameters = res_three_LF[1][1];
         }
