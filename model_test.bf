@@ -266,7 +266,7 @@ for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
     fprintf(stdout, "Adding " + best_models[branchI] + " to:\n");
     fprintf(stdout, bNames[branchI]);
     fprintf(stdout, "\n");
-    for (modelI = 0; modelI < best_models[branchI]; modelI = modelI + 1)
+    for (modelI = 1; modelI < best_models[branchI]; modelI = modelI + 1)
     {
         fprintf(stdout, "A new model!\n");
         if (branchI == 0)
@@ -275,7 +275,7 @@ for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
         }
         else
         {
-            addRate2Branch("three_LF", nucCF, bNames[branchI], "MGL", modelList, algn_len, 0);
+            addRate2BranchAdvanced("three_LF", nucCF, bNames[branchI], "MGL", modelList, algn_len, 0, bNames, best_models);
         }
     }
     fprintf(stdout, "\n");
@@ -283,10 +283,11 @@ for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
 
 
 // XXX change the treestring!
-for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
-{
 
-}
+//for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
+//{
+//
+//}
 
 VERBOSITY_LEVEL = 10; // 10 prints EVERYTHING
 
@@ -305,6 +306,11 @@ fprintf(stdout, "This iterations sample count: " + iter_samples);
 fprintf(stdout, "\n");
 fprintf(stdout, "This iterations BIC: " + iter_bic);
 fprintf(stdout, "\n");
+
+lfOut	= csvFilePath + ".finalTree.fit";
+LIKELIHOOD_FUNCTION_OUTPUT = 7;
+fprintf (lfOut, CLEAR_FILE, three_LF);
+LIKELIHOOD_FUNCTION_OUTPUT = 2;
 
 //---- TREE RENDERING -----
 // Pretty self explanatory

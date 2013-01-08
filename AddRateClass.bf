@@ -1,8 +1,16 @@
 //VERBOSITY_LEVEL = 0;
 LoadFunctionLibrary("DistributionFunctions.bf");
 
-// Testing with nucCF passed in
 function addRate2Branch(lfID, nucCF, branchName, defaultModel, modelList, algn_len, replace_tree)
+{
+    model_assignments = {};
+    branch_names = {};
+    addRate2BranchAdvanced(lfID, nucCF, branchName, defaultModel, modelList, algn_len, replace_tree, branch_names, model_assignments);
+    return 0;
+}
+
+// Testing with nucCF passed in
+function addRate2BranchAdvanced(lfID, nucCF, branchName, defaultModel, modelList, algn_len, replace_tree, branch_names, model_assignments)
 {
     ExecuteCommands ("GetString(lfInfoAA, " + lfID + ", -1)");
     lfTree = lfInfoAA["Trees"];
@@ -176,7 +184,21 @@ function addRate2Branch(lfID, nucCF, branchName, defaultModel, modelList, algn_l
     //fprintf(stdout, "\n");
 
     //new_tree_string = new_tree_string^{{branchName, branchName + "{BSREL}"}};
-    new_tree_string = new_tree_string^{{branchName, branchName + "{BSREL" + nextOmega + "}"}};
+
+    // Yeah, model_assignments should be of length zero or of length equal to
+    // the number of branches. I may implement a check for that later.
+    for (mod_assgn_I = 0; mod_assgn_I < Abs(model_assignments); mod_assgn_I = mod_assgn_I + 1)
+    {
+        if (model_assignments[mod_assgn_I] > 1)
+        {
+            new_tree_string = new_tree_string^{{branch_names[mod_assgn_I], branch_names[mod_assgn_I] + "{BSREL" + model_assignments[mod_assgn_I] + "}"}};
+        }
+    }
+
+    if (Abs(model_assignments) == 0)
+    {
+        new_tree_string = new_tree_string^{{branchName, branchName + "{BSREL" + nextOmega + "}"}};
+    }
     fprintf(stdout, new_tree_string);
     fprintf(stdout, "\n");
 
@@ -216,5 +238,19 @@ function addRate2Branch(lfID, nucCF, branchName, defaultModel, modelList, algn_l
 
     return 0;
 }
+
+/*
+function assign_models(lfID, modelList)
+{
+    ExecuteCommands ("GetString(lfInfoAA, " + lfID + ", -1)");
+    lfTree = lfInfoAA["Trees"];
+    lfTreeID = lfTree[0];
+    ExecuteCommands ("orig_tree_string = Format(" + lfTreeID + ",1,1)");
+
+    new_tree_string = orig_tree_string;
+    new_tree_string = new_tree_string^{{branchName, branchName + "{BSREL" + nextOmega + "}"}};
+    REPLACE_TREE_STRUCTURE = 0;
+}
+*/
 
 return 0;
