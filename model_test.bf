@@ -199,7 +199,7 @@ for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
     while (better_bic == 1)
     {
         //fprintf(stdout, "\n");
-        addRate2Branch("three_LF", nucCF, bNames[branchI], "MGL", modelList);
+        addRate2Branch("three_LF", nucCF, bNames[branchI], "MGL", modelList, algn_len, 1);
         //fprintf(stdout, "Current Model list:\n");
         //fprintf(stdout, modelList);
         //fprintf(stdout, "\n");
@@ -259,6 +259,51 @@ for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
 }
 fprintf(stdout, "\n");
 fprintf(stdout, best_models);
+fprintf(stdout, "\n");
+
+for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
+{
+    fprintf(stdout, "Adding " + best_models[branchI] + " to:\n");
+    fprintf(stdout, bNames[branchI]);
+    fprintf(stdout, "\n");
+    for (modelI = 0; modelI < best_models[branchI]; modelI = modelI + 1)
+    {
+        fprintf(stdout, "A new model!\n");
+        if (branchI == 0)
+        {
+            addRate2Branch("three_LF", nucCF, bNames[branchI], "MGL", modelList, algn_len, 1);
+        }
+        else
+        {
+            addRate2Branch("three_LF", nucCF, bNames[branchI], "MGL", modelList, algn_len, 0);
+        }
+    }
+    fprintf(stdout, "\n");
+}
+
+
+// XXX change the treestring!
+for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
+{
+
+}
+
+VERBOSITY_LEVEL = 10; // 10 prints EVERYTHING
+
+Optimize (res_three_LF,three_LF);
+fprintf(stdout, "\n");
+
+iter_likelihood = res_three_LF[1][0];
+iter_parameters = res_three_LF[1][1];
+
+iter_bic = calcBIC(iter_likelihood, iter_parameters, iter_samples);
+fprintf(stdout, "This iterations likelihood: " + iter_likelihood);
+fprintf(stdout, "\n");
+fprintf(stdout, "This iterations parameter count: " + iter_parameters);
+fprintf(stdout, "\n");
+fprintf(stdout, "This iterations sample count: " + iter_samples);
+fprintf(stdout, "\n");
+fprintf(stdout, "This iterations BIC: " + iter_bic);
 fprintf(stdout, "\n");
 
 //---- TREE RENDERING -----

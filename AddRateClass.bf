@@ -2,7 +2,7 @@
 LoadFunctionLibrary("DistributionFunctions.bf");
 
 // Testing with nucCF passed in
-function addRate2Branch(lfID, nucCF, branchName, defaultModel, modelList)
+function addRate2Branch(lfID, nucCF, branchName, defaultModel, modelList, algn_len, replace_tree)
 {
     ExecuteCommands ("GetString(lfInfoAA, " + lfID + ", -1)");
     lfTree = lfInfoAA["Trees"];
@@ -51,6 +51,12 @@ function addRate2Branch(lfID, nucCF, branchName, defaultModel, modelList)
         }
         numOmegas = numOmegas + 1;
     }
+    fprintf(stdout, "\n");
+    fprintf(stdout, "Last set's values:\n");
+    fprintf(stdout, currentParams);
+    fprintf(stdout, "\n");
+    fprintf(stdout, paramProportions);
+    fprintf(stdout, "\n");
     // So I guess if nextOmega = 1 then the original n/ns rate needs to
     // become omega1 and there needs to be an additional omega2 rate class.
     // This will of course mean nextOmega = 2, and this need to make sense
@@ -58,13 +64,15 @@ function addRate2Branch(lfID, nucCF, branchName, defaultModel, modelList)
     if (nextOmega == 1)
     {
         currentParams[1] = 10;
-        currentParams[2] = 1;
-        paramProportions[1] = .9;
+        currentParams[2] = currentParams[1]*2;
+        paramProportions[1] = (algn_len-1)/algn_len;
         srate = Eval (lfTreeID + "." + branchName + ".syn");
         nsrate = Eval (lfTreeID + "." + branchName + ".nonsyn");
         if (srate > 0)
         {
-            currentParams[0] = Min (10, nsrate/srate);
+            //currentParams[0] = Min (10, nsrate/srate);
+            currentParams[1] = Min (10, nsrate/srate);
+            currentParams[2] = currentParams[1]*2;
         }
         nextOmega = 2;
     }
@@ -74,11 +82,29 @@ function addRate2Branch(lfID, nucCF, branchName, defaultModel, modelList)
         //paramProportions[nextOmega - 2] = 1 - newProportion;
         //paramProportions[nextOmega - 1] = newProportion;
         //currentParams[nextOmega] = .9;
-        for (prevPropI = 0; prevPropI < nextOmega - 2; prevPropI = prevPropI + 1)
+        //for (prevPropI = 0; prevPropI < nextOmega - 2; prevPropI =
+        //prevPropI + 1) // XXX Orig
+        //for (prevPropI = 1; prevPropI < nextOmega - 2; prevPropI = prevPropI + 1)
+        //{ // XXX Orig
+            //paramProportions[prevPropI] = paramProportions[prevPropI] *
+            //((algn_len - 1)/algn_len); // XXX Orig
+        //} // XXX Orig
+        // XXX So the first round adds two omegas. Therefore nextOmega will
+        // always be omega 3 or more. Therefore omega 1 already exists. We
+        // now need omega 2, or nextOmega-1
+        paramProportions[nextOmega - 1] = (1 - paramProportions[nextOmega - 2]) * ((algn_len-1)/algn_len);
+        //paramProportions[nextOmega - 1] = (1 - paramProportions[nextOmega - 2]) * ((algn_len-1)/algn_len);
+        /*
+        if (nextOmega > 2)
         {
-            paramProportions[prevPropI] = paramProportions[prevPropI] * 0.99;
+            paramProportions[nextOmega - 2] = paramProportions[nextOmega - 2] * ((1-algn_len)/algn_len);
+            //paramProportions[nextOmega -1] = (1/algn_len);
         }
-        paramProportions[nextOmega -1] = 0.01;
+        else
+        {
+            paramProportions[nextOmega - 1] = paramProportions[nextOmega - 1] * ((1-algn_len)/algn_len);
+        }
+        */
         currentParams[nextOmega] = currentParams[nextOmega - 1] * 2;  // XXX this should be selected
                                         // intelligently
         // XXX So to get what this value should be, I need to completely make
@@ -123,6 +149,10 @@ function addRate2Branch(lfID, nucCF, branchName, defaultModel, modelList)
             matrixString = matrixString + "*(1-Paux" + prevParamI + ")";
         }
     }
+    fprintf(stdout, "matrixString:\n");
+    fprintf(stdout, "\n");
+    fprintf(stdout, matrixString);
+    fprintf(stdout, "\n");
     //ExecuteCommands ("Model BSREL = (matrixString, " + lfbaseFreqsID + ", EXPLICIT_FORM_MATRIX_EXPONENTIAL);");
 
     // XXX There is a pretty good chance that much of the code above is
@@ -146,21 +176,39 @@ function addRate2Branch(lfID, nucCF, branchName, defaultModel, modelList)
     //fprintf(stdout, "\n");
 
     //new_tree_string = new_tree_string^{{branchName, branchName + "{BSREL}"}};
-    new_tree_string = new_tree_string^{{branchName, branchName + "{BSREL" +
-    nextOmega + "}"}};
+    new_tree_string = new_tree_string^{{branchName, branchName + "{BSREL" + nextOmega + "}"}};
     fprintf(stdout, new_tree_string);
     fprintf(stdout, "\n");
+
+    if (replace_tree == 1)
+    {
+        REPLACE_TREE_STRUCTURE = 1;
+    }
+    else
+    {
+        REPLACE_TREE_STRUCTURE = 0;
+    }
 
     ExecuteCommands ("Tree `lfTreeID` = `new_tree_string`");
     ExecuteCommands ("LikelihoodFunction `lfID` = (`lfdsfID`, `lfTreeID`);");
 
-// XXX so this is where it counts. this is where I need to have a value by.
-// That means that I may also
+
+    fprintf(stdout, "\n");
+    fprintf(stdout, "Initial values:\n");
+    fprintf(stdout, currentParams);
+    fprintf(stdout, "\n");
+    fprintf(stdout, paramProportions);
+    fprintf(stdout, "\n");
+
     for (omegaI = 1; omegaI <= nextOmega; omegaI = omegaI + 1)
     {
         ExecuteCommands(lfTreeID + "." + branchName + ".omega" + omegaI + " = " + currentParams[omegaI] + ";");
         if (omegaI != nextOmega)
         {
+            if (paramProportions[omegaI] == 0)
+            {
+                fprintf(stdout, "prop is zero! \n");
+            }
             ExecuteCommands(lfTreeID + "." + branchName + ".Paux" + omegaI + " = " + paramProportions[omegaI] + ";");
             ExecuteCommands(lfTreeID + "." + branchName + ".Paux" + omegaI + " :< 1;");
         }
@@ -168,6 +216,5 @@ function addRate2Branch(lfID, nucCF, branchName, defaultModel, modelList)
 
     return 0;
 }
-
 
 return 0;
