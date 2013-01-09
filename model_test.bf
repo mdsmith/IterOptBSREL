@@ -171,7 +171,9 @@ GetInformation(dsf_seq_array, dsf);
 Export(three_LF_bak, three_LF);
 
 origRes = res_three_LF[1][0] - 1.0;
-
+orig_likelihood = res_three_LF[1][0];
+orig_parameters = res_three_LF[1][1];
+orig_bic = calcBIC(orig_likelihood, orig_parameters, iter_samples);
 
 best_models = {};
 
@@ -179,6 +181,13 @@ for (taxI = 0; taxI < totalBranchCount; taxI = taxI + 1)
 {
     best_models[taxI] = 1;
 }
+
+//fprintf(stdout, "Branch Names:\n");
+//fprintf(stdout, bNames);
+//fprintf(stdout, "\n");
+//fprintf(stdout, "Total Branch Count: ");
+//fprintf(stdout, totalBranchCount);
+//fprintf(stdout, "\n");
 
 for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
 {
@@ -189,7 +198,8 @@ for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
     omegaNumber = 1;
 
     better_bic = 1;
-    last_bic = 100000000;
+    //last_bic = 100000000;
+    last_bic = orig_bic;
 
     bic_run_count = 0;
 
@@ -261,9 +271,11 @@ fprintf(stdout, "\n");
 fprintf(stdout, best_models);
 fprintf(stdout, "\n");
 
+REPLACE_TREE_STRUCTURE = 1;
+
 for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
 {
-    fprintf(stdout, "Adding " + best_models[branchI] + " to:\n");
+    fprintf(stdout, "Adding " + (best_models[branchI]-1) + " to:\n");
     fprintf(stdout, bNames[branchI]);
     fprintf(stdout, "\n");
     for (modelI = 1; modelI < best_models[branchI]; modelI = modelI + 1)
@@ -275,19 +287,11 @@ for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
         }
         else
         {
-            addRate2BranchAdvanced("three_LF", nucCF, bNames[branchI], "MGL", modelList, algn_len, 0, bNames, best_models);
+            addRate2BranchAdvanced("three_LF", nucCF, bNames[branchI], "MGL", modelList, algn_len, 1, bNames, best_models);
         }
     }
     fprintf(stdout, "\n");
 }
-
-
-// XXX change the treestring!
-
-//for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
-//{
-//
-//}
 
 VERBOSITY_LEVEL = 10; // 10 prints EVERYTHING
 

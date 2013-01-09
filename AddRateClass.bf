@@ -100,7 +100,32 @@ function addRate2BranchAdvanced(lfID, nucCF, branchName, defaultModel, modelList
         // XXX So the first round adds two omegas. Therefore nextOmega will
         // always be omega 3 or more. Therefore omega 1 already exists. We
         // now need omega 2, or nextOmega-1
-        paramProportions[nextOmega - 1] = (1 - paramProportions[nextOmega - 2]) * ((algn_len-1)/algn_len);
+        //XXX most recent: paramProportions[nextOmega - 1] = (1 - paramProportions[nextOmega - 2]) * ((algn_len-1)/algn_len);
+        // This should set a new parameter value to the the "remainder" of the
+        // previous proportions (the produce of 1-pns), but with a chunk taken
+        // out for the next omega. This parameter was essentially held at 1 for
+        // the previous optimization, now it can vary and starts at a proportion
+        // that leaves at least one site for the new omega.
+        //remainder = 1;
+        //for (remainderI = 1; remainderI < nextOmega - 1; remainderI = remainderI + 1)
+        //{
+            //remainder = remainder * (1 - paramProportions[remainderI]);
+        //}
+        //paramProportions[nextOmega - 1] = 1 - (((algn_len-1)/algn_len)/remainder);
+        //paramProportions[nextOmega - 1] = 1 - ((algn_len-1)/algn_len);
+        //paramProportions[nextOmega - 1] = .95;
+
+        //remainder = 1;
+        //for (pI = 1; pI < nextOmega-1; pI = pI + 1)
+        //{
+            //temp_prop = 1 - paramProportions[pI];
+            //paramProportions[pI] = paramProportions[pI] - ((algn_len-1)/algn_len)/(remainder);
+            //remainder = remainder * temp_prop;
+        //}
+        // XXX this isn't good, but it isn't terrible.
+        paramProportions[nextOmega - 1] = .99;
+        paramProportions[1] = paramProportions[1] * ((algn_len - 1)/algn_len);
+
         //paramProportions[nextOmega - 1] = (1 - paramProportions[nextOmega - 2]) * ((algn_len-1)/algn_len);
         /*
         if (nextOmega > 2)
@@ -114,7 +139,7 @@ function addRate2BranchAdvanced(lfID, nucCF, branchName, defaultModel, modelList
         }
         */
         currentParams[nextOmega] = currentParams[nextOmega - 1] * 2;  // XXX this should be selected
-                                        // intelligently
+                                        // more intelligently
         // XXX So to get what this value should be, I need to completely make
         // the LF using constrained values in a loop, optimize them, then
         // choose a specific one and remake the LF. I also need to use the
@@ -229,7 +254,7 @@ function addRate2BranchAdvanced(lfID, nucCF, branchName, defaultModel, modelList
         {
             if (paramProportions[omegaI] == 0)
             {
-                fprintf(stdout, "prop is zero! \n");
+                fprintf(stdout, "prop is zero!\n");
             }
             ExecuteCommands(lfTreeID + "." + branchName + ".Paux" + omegaI + " = " + paramProportions[omegaI] + ";");
             ExecuteCommands(lfTreeID + "." + branchName + ".Paux" + omegaI + " :< 1;");
