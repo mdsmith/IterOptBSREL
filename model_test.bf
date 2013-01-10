@@ -177,7 +177,7 @@ fprintf(stdout, "\n");
 fprintf(stdout, best_models);
 fprintf(stdout, "\n");
 
-assignModels2Branches("three_LF", nucCF, "MGL", bNames, best_models);
+assignModels2Branches("three_LF", nucCF, "MGL", bNames, best_models, algn_len);
 
 VERBOSITY_LEVEL = 10; // 10 prints EVERYTHING
 

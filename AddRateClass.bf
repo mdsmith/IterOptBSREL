@@ -84,66 +84,44 @@ function addRate2BranchAdvanced(lfID, nucCF, branchName, defaultModel, modelList
     }
     else
     {
-        //newProportion = paramProportions[nextOmega - 2] * .1;
-        //paramProportions[nextOmega - 2] = 1 - newProportion;
-        //paramProportions[nextOmega - 1] = newProportion;
-        //currentParams[nextOmega] = .9;
-        //for (prevPropI = 0; prevPropI < nextOmega - 2; prevPropI =
-        //prevPropI + 1) // XXX Orig
-        //for (prevPropI = 1; prevPropI < nextOmega - 2; prevPropI = prevPropI + 1)
-        //{ // XXX Orig
-            //paramProportions[prevPropI] = paramProportions[prevPropI] *
-            //((algn_len - 1)/algn_len); // XXX Orig
-        //} // XXX Orig
-        // XXX So the first round adds two omegas. Therefore nextOmega will
-        // always be omega 3 or more. Therefore omega 1 already exists. We
-        // now need omega 2, or nextOmega-1
-        //XXX most recent: paramProportions[nextOmega - 1] = (1 - paramProportions[nextOmega - 2]) * ((algn_len-1)/algn_len);
-        // This should set a new parameter value to the the "remainder" of the
-        // previous proportions (the produce of 1-pns), but with a chunk taken
-        // out for the next omega. This parameter was essentially held at 1 for
-        // the previous optimization, now it can vary and starts at a proportion
-        // that leaves at least one site for the new omega.
-        //remainder = 1;
-        //for (remainderI = 1; remainderI < nextOmega - 1; remainderI = remainderI + 1)
-        //{
-            //remainder = remainder * (1 - paramProportions[remainderI]);
-        //}
-        //paramProportions[nextOmega - 1] = 1 - (((algn_len-1)/algn_len)/remainder);
-        //paramProportions[nextOmega - 1] = 1 - ((algn_len-1)/algn_len);
-        //paramProportions[nextOmega - 1] = .95;
+        // in the event that this is the first Paux, make this at least
+        // one site smaller than all of the sites. For later sites this
+        // will diminish the proportion by less than a site, so it isn't
+        // a big deal.
+        paramProportions[nextOmega - 1] = ((algn_len -1)/algn_len);
 
-        //remainder = 1;
-        //for (pI = 1; pI < nextOmega-1; pI = pI + 1)
-        //{
-            //temp_prop = 1 - paramProportions[pI];
-            //paramProportions[pI] = paramProportions[pI] - ((algn_len-1)/algn_len)/(remainder);
-            //remainder = remainder * temp_prop;
-        //}
-        // XXX this isn't good, but it isn't terrible.
-        paramProportions[nextOmega - 1] = .99;
-        paramProportions[1] = paramProportions[1] * ((algn_len - 1)/algn_len); // XXX this won't be appropriate if the first prop = 0
+        avail_site_found = 0;
 
-        //paramProportions[nextOmega - 1] = (1 - paramProportions[nextOmega - 2]) * ((algn_len-1)/algn_len);
-        /*
-        if (nextOmega > 2)
+        // I believe we can search back to nextOmega - 1 as well, instead of having to start with
+        // nextOmega - 2. This is because the proportion of nextOmega - 2 was optimized to take
+        // into account the number of sites that had to go to nextOmega - 1 when its Paux was
+        // essentially 1
+        for (site_source_I = nextOmega - 1; site_source_I > 0; site_source_I = site_source_I - 1)
         {
-            paramProportions[nextOmega - 2] = paramProportions[nextOmega - 2] * ((1-algn_len)/algn_len);
-            //paramProportions[nextOmega -1] = (1/algn_len);
+            if (avail_site_found == 0)
+            {
+                this_prop = paramProportions[site_source_I];
+                for (remI = site_source_I - 1; remI > 0; remI = remI - 1)
+                {
+                    this_prop = this_prop * (1 - paramProportions[remI]);
+                }
+                // this_prop now contains the proportion of site_source_I omega.
+                // If this proportion is greater than two sites, take one and
+                // break the loop. Otherwise keep looking.
+                if (this_prop > (2 * (1/algn_len)))
+                {
+                    avail_site_found = 1;
+                    paramProportions[site_source_I] = (this_prop - (1/algn_len))/this_prop;
+                }
+            }
         }
-        else
+        if (avail_site_found == 0)
         {
-            paramProportions[nextOmega - 1] = paramProportions[nextOmega - 1] * ((1-algn_len)/algn_len);
+            fprintf(stdout, "Impossibly, no omega has a proportion greater than one site...");
         }
-        */
+
         currentParams[nextOmega] = currentParams[nextOmega - 1] * 2;  // XXX this should be selected
                                         // more intelligently
-        // XXX So to get what this value should be, I need to completely make
-        // the LF using constrained values in a loop, optimize them, then
-        // choose a specific one and remake the LF. I also need to use the
-        // previous LF's output (keep it constant, how do I do that?). And
-        // even more challenging: how do I do that in a global name space
-        // with no clear way of duplicating objects...
     }
 
     // Build a model matrix for each rate class to be used (in proportion)
@@ -193,18 +171,10 @@ function addRate2BranchAdvanced(lfID, nucCF, branchName, defaultModel, modelList
     {
         ExecuteCommands ("Model BSREL" + nextOmega + " = (matrixString, " + lfbaseFreqsID + ", EXPLICIT_FORM_MATRIX_EXPONENTIAL);");
         modelList[nextOmega] = "BSREL" + nextOmega;
-        //fprintf(stdout, "Next item in the model list");
-        //fprintf(stdout, modelList[nextOmega + 1]);
-        //fprintf(stdout, "\n");
     }
 
     new_tree_string = orig_tree_string;
-    //fprintf(stdout, new_tree_string);
-    //fprintf(stdout, "\n");
-    //ExecuteCommands ("UseModel(" + lfModelID + ")");
     ExecuteCommands ("UseModel(" + defaultModel + ")");
-    //fprintf(stdout, new_tree_string);
-    //fprintf(stdout, "\n");
 
     //new_tree_string = new_tree_string^{{branchName, branchName + "{BSREL}"}};
 
@@ -259,13 +229,23 @@ function addRate2BranchAdvanced(lfID, nucCF, branchName, defaultModel, modelList
     return 0;
 }
 
-function assignModels2Branches(lfID, nucCF, defaultModel, branch_names, model_assignments)
+function assignModels2Branches(lfID, nucCF, defaultModel, branch_names, model_assignments, algn_len)
 {
+
     ExecuteCommands ("UseModel(" + defaultModel + ")");
 
     ExecuteCommands ("GetString(lfInfoAA, " + lfID + ", -1)");
     lfTree = lfInfoAA["Trees"];
     lfTreeID = lfTree[0];
+
+    orig_omega = 10;
+    srate = Eval (lfTreeID + "." + branchName + ".syn");
+    nsrate = Eval (lfTreeID + "." + branchName + ".nonsyn");
+    if (srate > 0)
+    {
+        orig_omega = Min (10, nsrate/srate);
+    }
+
     ExecuteCommands ("orig_tree_string = Format(" + lfTreeID + ",1,1)");
     final_tree_string = orig_tree_string;
     for (mod_assgn_I = 0; mod_assgn_I < Abs(model_assignments); mod_assgn_I = mod_assgn_I + 1)
@@ -289,13 +269,15 @@ function assignModels2Branches(lfID, nucCF, defaultModel, branch_names, model_as
         {
             for (omegaI = 1; omegaI <= model_assignments[omegaI]; omegaI = omegaI + 1)
             {
-                ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".omega" + omegaI + " = " + (0.05 * omegaI) + ";"); // XXX fix init
+                ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".omega" + omegaI + " = " + (orig_omega * omegaI) + ";");
                 if (omegaI != model_assignments[mod_assgn_I])
                 {
-                    ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".Paux" + omegaI + " = " + (.4 + (.1 * omegaI)) + ";"); // XXX fix init
+                    //ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".Paux" + omegaI + " = " + (.4 + (.1 * omegaI)) + ";"); // XXX fix init
+                    ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".Paux" + omegaI + " = " + ((algn_len - 1)/algn_len) + ";"); // XXX fix init
                     ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".Paux" + omegaI + " :< 1;");
                 }
             }
+            ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".Paux1 = " + (1 - (model_assignments[mod_assgn_I] * (1/algn_len))) + ";");
         }
     }
 
