@@ -1,4 +1,3 @@
-//VERBOSITY_LEVEL = 0;
 LoadFunctionLibrary("DistributionFunctions.bf");
 
 function addRate2Branch(lfID, nucCF, branchName, defaultModel, modelList, algn_len, replace_tree)
@@ -20,15 +19,14 @@ function addRate2BranchAdvanced(lfID, nucCF, branchName, defaultModel, modelList
     lfdsf = lfInfoAA["Datafilters"];
     lfdsfID = lfdsf[0];
     ExecuteCommands ("HarvestFrequencies (lfnuc3," + lfdsfID + ", 3, 1, 1)");
-    //lfnucCF = CF3x4 (lfnuc3, GeneticCodeExclusions); // XXX BREAKS HERE
     lfnucCF = nucCF;
 
     currentParams = {};
     paramProportions = {};
 
+    // Check and store previous Omegas
     numOmegas = 1;
     nextOmega = 1;
-    // Check and store previous Omegas
     openOmegaFound = 0;
     while (openOmegaFound != 1)
     {
@@ -38,7 +36,6 @@ function addRate2BranchAdvanced(lfID, nucCF, branchName, defaultModel, modelList
         // Check to see if this previous omega exists.
         if (Columns(omegaInfo) == 3)
         {
-            //fprintf(stdout, "\nomega found!\n");
             // Alright, it does. Now lets get information regarding its proportion (remember,
             // the number of proportions is (the number of rate classes) - 1.
             prevOmega = numOmegas - 1;
@@ -65,6 +62,7 @@ function addRate2BranchAdvanced(lfID, nucCF, branchName, defaultModel, modelList
     fprintf(stdout, "\n");
     fprintf(stdout, paramProportions);
     fprintf(stdout, "\n");
+
     // So I guess if nextOmega = 1 then the original n/ns rate needs to
     // become omega1 and there needs to be an additional omega2 rate class.
     // This will of course mean nextOmega = 2, and this need to make sense
@@ -124,7 +122,7 @@ function addRate2BranchAdvanced(lfID, nucCF, branchName, defaultModel, modelList
         //}
         // XXX this isn't good, but it isn't terrible.
         paramProportions[nextOmega - 1] = .99;
-        paramProportions[1] = paramProportions[1] * ((algn_len - 1)/algn_len);
+        paramProportions[1] = paramProportions[1] * ((algn_len - 1)/algn_len); // XXX this won't be appropriate if the first prop = 0
 
         //paramProportions[nextOmega - 1] = (1 - paramProportions[nextOmega - 2]) * ((algn_len-1)/algn_len);
         /*
@@ -216,13 +214,13 @@ function addRate2BranchAdvanced(lfID, nucCF, branchName, defaultModel, modelList
     {
         if (model_assignments[mod_assgn_I] > 1)
         {
-            new_tree_string = new_tree_string^{{branch_names[mod_assgn_I], branch_names[mod_assgn_I] + "{BSREL" + model_assignments[mod_assgn_I] + "}"}};
+            new_tree_string = new_tree_string^{{branch_names[mod_assgn_I] + ":", branch_names[mod_assgn_I] + "{BSREL" + model_assignments[mod_assgn_I] + "}:"}};
         }
     }
 
     if (Abs(model_assignments) == 0)
     {
-        new_tree_string = new_tree_string^{{branchName, branchName + "{BSREL" + nextOmega + "}"}};
+        new_tree_string = new_tree_string^{{branchName + ":", branchName + "{BSREL" + nextOmega + "}:"}};
     }
     fprintf(stdout, new_tree_string);
     fprintf(stdout, "\n");
@@ -230,6 +228,7 @@ function addRate2BranchAdvanced(lfID, nucCF, branchName, defaultModel, modelList
     if (replace_tree == 1)
     {
         REPLACE_TREE_STRUCTURE = 1;
+        fprintf(stdout, "\nThe tree should be replaced\n");
     }
     else
     {
@@ -252,10 +251,6 @@ function addRate2BranchAdvanced(lfID, nucCF, branchName, defaultModel, modelList
         ExecuteCommands(lfTreeID + "." + branchName + ".omega" + omegaI + " = " + currentParams[omegaI] + ";");
         if (omegaI != nextOmega)
         {
-            if (paramProportions[omegaI] == 0)
-            {
-                fprintf(stdout, "prop is zero!\n");
-            }
             ExecuteCommands(lfTreeID + "." + branchName + ".Paux" + omegaI + " = " + paramProportions[omegaI] + ";");
             ExecuteCommands(lfTreeID + "." + branchName + ".Paux" + omegaI + " :< 1;");
         }
@@ -264,18 +259,47 @@ function addRate2BranchAdvanced(lfID, nucCF, branchName, defaultModel, modelList
     return 0;
 }
 
-/*
-function assign_models(lfID, modelList)
+function assignModels2Branches(lfID, nucCF, defaultModel, branch_names, model_assignments)
 {
+    ExecuteCommands ("UseModel(" + defaultModel + ")");
+
     ExecuteCommands ("GetString(lfInfoAA, " + lfID + ", -1)");
     lfTree = lfInfoAA["Trees"];
     lfTreeID = lfTree[0];
     ExecuteCommands ("orig_tree_string = Format(" + lfTreeID + ",1,1)");
+    final_tree_string = orig_tree_string;
+    for (mod_assgn_I = 0; mod_assgn_I < Abs(model_assignments); mod_assgn_I = mod_assgn_I + 1)
+    {
+        if (model_assignments[mod_assgn_I] > 1)
+        {
+            final_tree_string = final_tree_string^{{branch_names[mod_assgn_I] + ":", branch_names[mod_assgn_I] + "{BSREL" + model_assignments[mod_assgn_I] + "}:"}};
+        }
+    }
+    fprintf(stdout, final_tree_string);
+    fprintf(stdout, "\n");
 
-    new_tree_string = orig_tree_string;
-    new_tree_string = new_tree_string^{{branchName, branchName + "{BSREL" + nextOmega + "}"}};
-    REPLACE_TREE_STRUCTURE = 0;
+    REPLACE_TREE_STRUCTURE = 1;
+
+    ExecuteCommands ("Tree `lfTreeID` = `final_tree_string`");
+    ExecuteCommands ("LikelihoodFunction `lfID` = (`lfdsfID`, `lfTreeID`);");
+
+    for (mod_assgn_I = 0; mod_assgn_I < Abs(model_assignments); mod_assgn_I = mod_assgn_I + 1)
+    {
+        if (model_assignments[mod_assgn_I] > 1)
+        {
+            for (omegaI = 1; omegaI <= model_assignments[omegaI]; omegaI = omegaI + 1)
+            {
+                ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".omega" + omegaI + " = " + (0.05 * omegaI) + ";"); // XXX fix init
+                if (omegaI != model_assignments[mod_assgn_I])
+                {
+                    ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".Paux" + omegaI + " = " + (.4 + (.1 * omegaI)) + ";"); // XXX fix init
+                    ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".Paux" + omegaI + " :< 1;");
+                }
+            }
+        }
+    }
+
+    return 0;
 }
-*/
 
 return 0;

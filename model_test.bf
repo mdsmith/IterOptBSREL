@@ -1,19 +1,14 @@
 VERBOSITY_LEVEL				 = 0;
 
 skipCodeSelectionStep 		= 0;
-LoadFunctionLibrary("chooseGeneticCode");   // Where are these libraries (for
-                                            //reference/use)
-
+LoadFunctionLibrary("chooseGeneticCode");
 LoadFunctionLibrary("GrabBag");
 LoadFunctionLibrary("dSdNTreeTools");
 LoadFunctionLibrary("CF3x4");
 LoadFunctionLibrary("BranchSiteTemplate");
-//LoadFunctionLibrary("DeltaOmega.bf");
 LoadFunctionLibrary("AddRateClass.bf");
 
-
 modelList = {};
-
 
 DataSet 			ds 				= ReadDataFile(PROMPT_FOR_FILE);
 DataSetFilter 		dsf 			= CreateFilter(ds,3,"","",GeneticCodeExclusions);
@@ -22,81 +17,31 @@ GetInformation(dsf_seq_array, dsf);
 taxa_count = Columns(dsf_seq_array);
 algn_len = Abs(dsf_seq_array[0]);
 
-
-// Are these the nucleotide frequences?
-// If so, are they harvested but left in dsf? Or are they now in nuc3?
 HarvestFrequencies	(nuc3, dsf, 3, 1, 1);
 
-// I don't know what this is yet, but nuc3 is passed in as an argument here.
 nucCF						= CF3x4	(nuc3, GeneticCodeExclusions);
 
-// Why is this one separate? Matrix Local with syn and nonsyn? hmmm
 PopulateModelMatrix			  ("MGMatrixLocal",  nucCF, "syn", "", "nonsyn");
 
-// So we harvested frequencies earlier (character frequencies), now we're
-// building codon frequencies from the nucleotide frequencies?
 codon3x4					= BuildCodonFrequencies (nucCF);
-// I'm not sure I get this syntax. Is this some sort of constructor, or
-// tuple?
 Model		MGL				= (MGMatrixLocal, codon3x4, 0);
-
 modelList[1] = "MGL";
 
 LoadFunctionLibrary			  ("queryTree");
 
-// I know a few of these words (they just print thinks, as far as I can tell)
 SetDialogPrompt ("Save analysis results to");
-//fprintf (PROMPT_FOR_FILE, CLEAR_FILE, KEEP_OPEN,"Branch,Mean_dNdS,Omega1,P1,Omega2,P2,Omega3,P3,LRT,p,p_Holm");
 fprintf (PROMPT_FOR_FILE, CLEAR_FILE, KEEP_OPEN,"Branch,Mean_dNdS,LRT,p,p_Holm");
 csvFilePath = LAST_FILE_PATH;
 
 fprintf 					  (stdout, "[PHASE 0] Fitting the local MG94 (no site-to-site variation) to obtain initial parameter estimates\n");
 
-// Again, is this syntax for a constructor or a function or a tuple?
-// dsf = DataSetFilter
-// givenTree doesn't yet exist, does it? Is it a global variable?
-// No, it does not. Rather it is a hidden global variable that is populated
-// by some other process.
-// Yes, givenTree is a hidden global variable that shows up when you
-// "queryTree"
-// So yeah, it doesn't appear that Optimization ever really happens in the
-// code or in execution. Thats chill...
 LikelihoodFunction	base_LF	 = (dsf, givenTree);
 
-
-//Optimize					  (res_base,base_LF);
-//GetInformation(treeInformation, givenTree);
-//fprintf (csvFilePath + ".givenTree.tree", CLEAR_FILE, treeInformation);
-
-// Not sure what LIKELIHOOD_FUNCTION_OUTPUT is about. I'm assuming it has to
-// do with printing, however
-//lfOut	= csvFilePath + ".mglocal.fit";
-//LIKELIHOOD_FUNCTION_OUTPUT = 7;
-//fprintf (lfOut, CLEAR_FILE, base_LF);
-//LIKELIHOOD_FUNCTION_OUTPUT = 2;
-
-//localLL						 = res_base[1][0];
-//localParams					 = res_base[1][1] + 9;
-
 LoadFunctionLibrary			 ("DescriptiveStatistics");
-
-// Function from DescriptiveStatistics?
 totalBranchCount			 = BranchCount(givenTree) + TipCount (givenTree);
-
-//GetInformation	   		   (varNames, "givenTree\\..*\\.omega1");
-//localOmegaValues			 = {totalBranchCount,1}["Eval(varNames[_MATRIX_ELEMENT_ROW_])"];
-
-// What now is this syntax?
 pValueByBranch				  = {totalBranchCount,10};
-
-// Function from DescriptiveStatistics?
 bNames						  = BranchName (givenTree, -1);
 
-
-// not sure I get why things are called pValueByBranch...
-// So this looks to be an important processing point, wherein synonymous and
-// nonsynonymous rates are used to determine a a dn/ds ration (omega) for the
-// branch.
 for (k = 0; k < totalBranchCount; k = k+1)
 {
 	srate  = Eval ("givenTree." + bNames[k] + ".syn");
@@ -111,38 +56,22 @@ for (k = 0; k < totalBranchCount; k = k+1)
 	}
 }
 
-// Why are we negative one indexing here? All values? The Last value?
 omegaStats					 = GatherDescriptiveStats (pValueByBranch[-1][0]);
-
 fprintf						 (stdout, "\nLog L = ", localLL, " with ", localParams, " degrees of freedom\n");
-
-//PrintDescriptiveStats		 ("Branch omega values", omegaStats);
 
 Tree						   mixtureTree = treeString;
 
-// Say what? are we saving parameters into temptorary variables or something?
-//ReplicateConstraint 		  ("this1.?.t:=this2.?.syn",mixtureTreeG,givenTree);
 ReplicateConstraint 		  ("this1.?.t:=this2.?.syn",mixtureTree,givenTree);
 
-// And then clearing them...
 ClearConstraints			  (mixtureTree);
-//ClearConstraints			  (mixtureTreeG);
-
-// Some options
 ASSUME_REVERSIBLE_MODELS	  = 1;
-
 VERBOSITY_LEVEL               = 1;
 
-// Yay new LF
-// So this is the likelihood function. But there is no "Optimize()" call...
-// yet. There wasn't earlier either, but there is one later that takes this
-// as the second parameter (look into the Optimize function)
 LikelihoodFunction three_LF  = (dsf,mixtureTree);
 
 //-------------------------------------------------------------------------
 // So at this point we have the MG94 model. Now we will go through the
 // branches and add&optimize rate classes.
-
 
 lfOut	= csvFilePath + ".tree.fit";
 LIKELIHOOD_FUNCTION_OUTPUT = 7;
@@ -157,16 +86,13 @@ LIKELIHOOD_FUNCTION_OUTPUT = 7;
 fprintf (lfOut, CLEAR_FILE, three_LF);
 LIKELIHOOD_FUNCTION_OUTPUT = 2;
 
-//for (k = 0; k < totalBranchCount; k = k+1)
 
 iter_likelihood = 0; // Determined after Optimize
-//iter_samples = taxa_count * algn_len; // Known, for now the # of codons * the number of sites
 iter_samples = algn_len;
 iter_parameters = 0; // Known, but can be determined after Optimize
 init_parameters = 0;
 
 GetInformation(dsf_seq_array, dsf);
-//fprintf(stdout, dsf_seq_array);
 
 Export(three_LF_bak, three_LF);
 
@@ -182,13 +108,6 @@ for (taxI = 0; taxI < totalBranchCount; taxI = taxI + 1)
     best_models[taxI] = 1;
 }
 
-//fprintf(stdout, "Branch Names:\n");
-//fprintf(stdout, bNames);
-//fprintf(stdout, "\n");
-//fprintf(stdout, "Total Branch Count: ");
-//fprintf(stdout, totalBranchCount);
-//fprintf(stdout, "\n");
-
 for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
 {
 
@@ -198,21 +117,13 @@ for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
     omegaNumber = 1;
 
     better_bic = 1;
-    //last_bic = 100000000;
     last_bic = orig_bic;
 
     bic_run_count = 0;
 
-    //while (res_three_LF[1][0] > lastRes)
-    //for (omegaNumber = 1; omegaNumber < 3; omegaNumber = omegaNumber + 1)
-    //while (last_BIC < 0 || iter_bic < last_BIC)
     while (better_bic == 1)
     {
-        //fprintf(stdout, "\n");
         addRate2Branch("three_LF", nucCF, bNames[branchI], "MGL", modelList, algn_len, 1);
-        //fprintf(stdout, "Current Model list:\n");
-        //fprintf(stdout, modelList);
-        //fprintf(stdout, "\n");
         omegaNumber = omegaNumber + 1;
 
         lfOut	= csvFilePath + ".treePlusRate." + bNames[branchI] + "." + omegaNumber + ".fit";
@@ -220,19 +131,14 @@ for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
         fprintf (lfOut, CLEAR_FILE, three_LF);
         LIKELIHOOD_FUNCTION_OUTPUT = 2;
 
-        VERBOSITY_LEVEL = 10; // 10 prints EVERYTHING
-        //VERBOSITY_LEVEL = 0;
+        VERBOSITY_LEVEL = 10;   // 10 prints EVERYTHING
+                                // 0 prints nothing
 
         Optimize (res_three_LF,three_LF);
         fprintf(stdout, "\n");
 
         iter_likelihood = res_three_LF[1][0];
-        //iter_parameters = res_three_LF[1][1];
-        if (branchI == 0 && omegaNumber == 2)
-        {
-            init_parameters = res_three_LF[1][1];
-        }
-        iter_parameters = init_parameters + (2 * omegaNumber) + 2;
+        iter_parameters = res_three_LF[1][1];
 
         iter_bic = calcBIC(iter_likelihood, iter_parameters, iter_samples);
         fprintf(stdout, "This iterations likelihood: " + iter_likelihood);
@@ -271,27 +177,7 @@ fprintf(stdout, "\n");
 fprintf(stdout, best_models);
 fprintf(stdout, "\n");
 
-REPLACE_TREE_STRUCTURE = 1;
-
-for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
-{
-    fprintf(stdout, "Adding " + (best_models[branchI]-1) + " to:\n");
-    fprintf(stdout, bNames[branchI]);
-    fprintf(stdout, "\n");
-    for (modelI = 1; modelI < best_models[branchI]; modelI = modelI + 1)
-    {
-        fprintf(stdout, "A new model!\n");
-        if (branchI == 0)
-        {
-            addRate2Branch("three_LF", nucCF, bNames[branchI], "MGL", modelList, algn_len, 1);
-        }
-        else
-        {
-            addRate2BranchAdvanced("three_LF", nucCF, bNames[branchI], "MGL", modelList, algn_len, 1, bNames, best_models);
-        }
-    }
-    fprintf(stdout, "\n");
-}
+assignModels2Branches("three_LF", nucCF, "MGL", bNames, best_models);
 
 VERBOSITY_LEVEL = 10; // 10 prints EVERYTHING
 
