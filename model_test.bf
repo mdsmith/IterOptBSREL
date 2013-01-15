@@ -25,7 +25,10 @@ PopulateModelMatrix			  ("MGMatrixLocal",  nucCF, "syn", "", "nonsyn");
 
 codon3x4					= BuildCodonFrequencies (nucCF);
 Model		MGL				= (MGMatrixLocal, codon3x4, 0);
+//Model		BSREL1				= (MGMatrixLocal, codon3x4, 0);
 modelList[1] = "MGL";
+// Testing
+//modelList[0] = "MGL";
 
 LoadFunctionLibrary			  ("queryTree");
 
@@ -124,6 +127,7 @@ for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
     while (better_bic == 1)
     {
         addRate2Branch("three_LF", nucCF, bNames[branchI], "MGL", modelList, algn_len, 1);
+        //addRate2Branch("three_LF", nucCF, bNames[branchI], "BSREL1", modelList, algn_len, 1);
         omegaNumber = omegaNumber + 1;
 
         lfOut	= csvFilePath + ".treePlusRate." + bNames[branchI] + "." + omegaNumber + ".fit";
@@ -177,7 +181,9 @@ fprintf(stdout, "\n");
 fprintf(stdout, best_models);
 fprintf(stdout, "\n");
 
-assignModels2Branches("three_LF", nucCF, "MGL", bNames, best_models, algn_len);
+assignModels2Branches("three_LF", nucCF, "MGL", bNames, best_models, algn_len, model_list);
+// Testing
+//assignModels2Branches("three_LF", nucCF, "BSREL1", bNames, best_models, algn_len, model_list);
 
 VERBOSITY_LEVEL = 10; // 10 prints EVERYTHING
 
@@ -201,6 +207,7 @@ lfOut	= csvFilePath + ".finalTree.fit";
 LIKELIHOOD_FUNCTION_OUTPUT = 7;
 fprintf (lfOut, CLEAR_FILE, three_LF);
 LIKELIHOOD_FUNCTION_OUTPUT = 2;
+
 
 //---- TREE RENDERING -----
 // Pretty self explanatory
@@ -264,11 +271,166 @@ height = TipCount (T) * 36;
 psTree = PSTreeString (T,"STRING_SUPPLIED_LENGTHS",{{400,height}});
 
 treePath = csvFilePath + ".ps";
-
 fprintf (treePath, CLEAR_FILE, psTree);
 */
-return pValueByBranch;
+// XXX test
+// So the problem is that branches with one omega don't actually have
+// an omega parameter. This is then called upon for hte branch length
+// calculation, but has the default value of zero, leading to a branch
+// length of zero XXX
+for (bI = 0; bI < totalBranchCount; bI = bI + 1)
+{
+    calculateBranchLengthByName(modelList, best_models, "mixtureTree", bNames[bI], bI);
+}
+//calculateBranchLengthByName(modelList, best_models, "mixtureTree", bNames[0], 0);
+//fprintf(stdout, extractBranchInformation ("mixtureTree", "omega", "MGMatrix", "Paux", "codon3x4", 0));
 
+return pValueByBranch;
+//--------------------------------------------------------------------------------------------------------------
+
+function extractBranchInformation (treeID, _omega_pattern, _model_prefix, _freq_prefix, _freq_vector, _do_mult) {
+    _branchNames   = Eval ("BranchName(`treeID`,-1)");
+    _branchCount   = Columns (_branchNames) - 1;
+
+    _toReturn         = {"Names": {}, "Props": {_branchCount,2}};  // cat count, branch length
+    _brLenExpressions = {};
+    _brLenLocals      = {};
+
+    for (_i = 0; _i < _branchCount; _i += 1) {
+        _expression = treeID + "\\." + _branchNames[_i] + "\\." + _omega_pattern;
+        ExecuteCommands("GetInformation (_matchedVars, \"`_expression`\")");
+        _catCount = Columns (_matchedVars);
+        _toReturn ["Names"] + _branchNames[_i];
+        (_toReturn["Props"])[_i][0] = _catCount;
+
+        _brLen     = 0;
+        _totalWeight = 0;
+        for (_c = 1; _c <= _catCount; _c = _c + 1) {
+            fprintf(stdout, "Processing omega number ");
+            fprintf(stdout, _c);
+            fprintf(stdout, "\n");
+            _modelID = _model_prefix + _c;
+            if (Abs (_brLenExpressions[_modelID]) == 0) {
+                fprintf(stdout, "Making the model...\n");
+                ExecuteCommands ("Model _internal = (`_modelID`, `_freq_vector`, _do_mult);");
+                GetString (_bl, _internal, -1);
+                _brLenExpressions [_modelID] = _bl;
+                _localParameters = {};
+                _p = 1;
+                GetString (_locP, _internal, 0);
+                while (_locP != None) {
+                    _localParameters + _locP;
+                    GetString (_locP, _internal, _p);
+                    _p += 1;
+                }
+                _brLenLocals [_modelID] = _localParameters;
+            }
+            fprintf(stdout, "Done making the model\n");
+            for (_lpc = 0; _lpc < Abs (_brLenLocals [_modelID]); _lpc += 1) {
+                ExecuteCommands ((_brLenLocals [_modelID])[_lpc] + "=" + treeID + "." + _branchNames[_i] + "." + (_brLenLocals [_modelID])[_lpc]);
+            }
+            fprintf(stdout, _brLenExpressions);
+            _thisModelLength = Eval (_brLenExpressions[_modelID]);
+            if (_c < _catCount) {
+                _freqW = Eval (treeID + "." + _branchNames[_i] + "." + _freq_prefix + _c);
+            } else {
+                _freqW = 1-Eval (treeID + "." + _branchNames[_i] + "." + _freq_prefix + _c);
+            }
+            _thisModelWeight = (1-_totalWeight)*_freqW;
+
+            _totalWeight += _thisModelWeight;
+            _brLen += _thisModelWeight * _thisModelLength;
+            fprintf(stdout, "Done with this omega\n");
+        }
+        fprintf(stdout, "Done with this branch\n");
+        (_toReturn["Props"]) [_i][1] = _brLen;
+        fprintf(stdout, "Done with this branch part 2\n");
+    }
+    fprintf(stdout, "Done with ALL branches\n");
+
+
+    return _toReturn;
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+function calculateBranchLengthByName (modelList, bestModels, treeName, branchName, branchNumber)
+{
+    branchLength = 0;
+
+    model_matrices = {};
+    for (mI = 1; mI <= bestModels[branchNumber]; mI = mI + 1)
+    {
+        model_matrices[mI] = "MGMatrix" + mI;
+    }
+
+    models = {};
+    for (mI = 1; mI <= bestModels[branchNumber]; mI = mI + 1)
+    {
+        ExecuteCommands ("Model M" + mI + " = (MGMatrix" + 1 + ", codon3x4, 0)");
+        models[mI] = "M" + mI;
+    }
+
+    mls = {};
+    for (mI = 1; mI <= bestModels[branchNumber]; mI = mI + 1)
+    {
+        ExecuteCommands ("GetString (M" + mI + "L, M" + mI + ", -1);");
+        //GetString(tempML, modelList[mI], -1);
+        //mls[mI] = tempML;
+        mls[mI] = "M" + mI + "L";
+        //fprintf(stdout, tempML);
+    }
+
+    t = Eval("`treeName`.`branchName`.t");
+    omegas = {};
+    pauxs = {};
+    evalstring = "(";
+    for (oI = 1; oI <= bestModels[branchNumber]; oI = oI + 1)
+    {
+        // String
+        if (oI > 1)
+        {
+            evalstring = evalstring + "+";
+        }
+        //evalstring = evalstring + "(" + mls[oI] + ")";
+        //evalstring = evalstring + "(" + mls[oI] + ")";
+        //evalstring = evalstring + "(" + mls[oI] + ")";
+        //ExecuteCommands("evalstring = evalstring + \"(" + mls[oI] + ")\";");
+        ExecuteCommands("tempML = " + mls[oI] + ";");
+        ExecuteCommands("evalstring = evalstring + \"(" + tempML + ")\";");
+        //evalstring = evalstring + "(" + mls[oI] + ")";
+        if (oI != bestModels[branchNumber])
+        {
+            evalstring = evalstring + "*Paux" + oI;
+        }
+        for (prevOI = oI - 1; prevOI > 0; prevOI = prevOI - 1)
+        {
+            evalstring = evalstring + "*(1-Paux" + prevOI + ")";
+        }
+
+        // Values
+        omegas[oI] = Eval("`treeName`.`branchName`.omega" + oI);
+        if (oI < bestModels[branchNumber])
+        {
+            pauxs[oI] = Eval("`treeName`.`branchName`.Paux" + oI);
+        }
+    }
+    evalstring = evalstring + ")/3";
+
+
+    fprintf(stdout, "\n");
+    fprintf(stdout, branchName);
+    fprintf(stdout, ":\n");
+
+    fprintf(stdout, "\n");
+    fprintf(stdout, evalstring);
+    fprintf(stdout, "\n");
+    branchLength = Eval(evalstring);
+    fprintf(stdout, "\n");
+    fprintf(stdout, branchLength);
+    fprintf(stdout, "\n");
+
+    return branchLength;
+}
 
 //------------------------------------------------------------------------------------------------------------------------
 function makeDNDSColor (omega)

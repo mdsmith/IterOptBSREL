@@ -69,6 +69,7 @@ function addRate2BranchAdvanced(lfID, nucCF, branchName, defaultModel, modelList
     // going forward
     if (nextOmega == 1)
     {
+
         currentParams[1] = 10;
         currentParams[2] = currentParams[1]*2;
         paramProportions[1] = (algn_len-1)/algn_len;
@@ -164,6 +165,17 @@ function addRate2BranchAdvanced(lfID, nucCF, branchName, defaultModel, modelList
     fprintf(stdout, "\n");
     //ExecuteCommands ("Model BSREL = (matrixString, " + lfbaseFreqsID + ", EXPLICIT_FORM_MATRIX_EXPONENTIAL);");
 
+    // But it would be nice to have a BSREL1.
+    /*
+    if (modelList[1] == 0)
+    {
+        // All we need is a matrix string
+        matrixString = "Exp(MGMatrix1)";
+        ExecuteCommands ("Model BSREL1 = (matrixString, " + lfbaseFreqsID + ", EXPLICIT_FORM_MATRIX_EXPONENTIAL);");
+        modelList[1] = "BSREL1";
+    }
+    */
+
     // XXX There is a pretty good chance that much of the code above is
     // similarly conditioned, but sorting it from what must be computed to
     // set branch parameters is for another time.
@@ -229,7 +241,7 @@ function addRate2BranchAdvanced(lfID, nucCF, branchName, defaultModel, modelList
     return 0;
 }
 
-function assignModels2Branches(lfID, nucCF, defaultModel, branch_names, model_assignments, algn_len)
+function assignModels2Branches(lfID, nucCF, defaultModel, branch_names, model_assignments, algn_len, model_list)
 {
 
     ExecuteCommands ("UseModel(" + defaultModel + ")");
@@ -238,6 +250,8 @@ function assignModels2Branches(lfID, nucCF, defaultModel, branch_names, model_as
     lfTree = lfInfoAA["Trees"];
     lfTreeID = lfTree[0];
 
+    // XXX this is... wrong. Recapture previous results before replacing tree
+    // structure
     orig_omega = 10;
     srate = Eval (lfTreeID + "." + branchName + ".syn");
     nsrate = Eval (lfTreeID + "." + branchName + ".nonsyn");
@@ -265,15 +279,16 @@ function assignModels2Branches(lfID, nucCF, defaultModel, branch_names, model_as
 
     for (mod_assgn_I = 0; mod_assgn_I < Abs(model_assignments); mod_assgn_I = mod_assgn_I + 1)
     {
-        if (model_assignments[mod_assgn_I] > 1)
+        //if (model_assignments[mod_assgn_I] > 1)
+        // Testing
+        if (model_assignments[mod_assgn_I] > 1) // goal = 0
         {
             for (omegaI = 1; omegaI <= model_assignments[omegaI]; omegaI = omegaI + 1)
             {
                 ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".omega" + omegaI + " = " + (orig_omega * omegaI) + ";");
                 if (omegaI != model_assignments[mod_assgn_I])
                 {
-                    //ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".Paux" + omegaI + " = " + (.4 + (.1 * omegaI)) + ";"); // XXX fix init
-                    ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".Paux" + omegaI + " = " + ((algn_len - 1)/algn_len) + ";"); // XXX fix init
+                    ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".Paux" + omegaI + " = " + ((algn_len - 1)/algn_len) + ";");
                     ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".Paux" + omegaI + " :< 1;");
                 }
             }
