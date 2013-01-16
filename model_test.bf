@@ -26,9 +26,9 @@ PopulateModelMatrix			  ("MGMatrixLocal",  nucCF, "syn", "", "nonsyn");
 codon3x4					= BuildCodonFrequencies (nucCF);
 Model		MGL				= (MGMatrixLocal, codon3x4, 0);
 //Model		BSREL1				= (MGMatrixLocal, codon3x4, 0);
-modelList[1] = "MGL";
+//modelList[1] = "MGL";
 // Testing
-//modelList[0] = "MGL";
+modelList[0] = "MGL";
 
 LoadFunctionLibrary			  ("queryTree");
 
@@ -181,9 +181,9 @@ fprintf(stdout, "\n");
 fprintf(stdout, best_models);
 fprintf(stdout, "\n");
 
-assignModels2Branches("three_LF", nucCF, "MGL", bNames, best_models, algn_len, model_list);
+//assignModels2Branches("three_LF", nucCF, "MGL", bNames, best_models, algn_len, model_list);
 // Testing
-//assignModels2Branches("three_LF", nucCF, "BSREL1", bNames, best_models, algn_len, model_list);
+assignModels2Branches("three_LF", nucCF, "BSREL1", bNames, best_models, algn_len, model_list);
 
 VERBOSITY_LEVEL = 10; // 10 prints EVERYTHING
 
@@ -414,7 +414,7 @@ function calculateBranchLengthByName (modelList, bestModels, treeName, branchNam
             pauxs[oI] = Eval("`treeName`.`branchName`.Paux" + oI);
         }
     }
-    evalstring = evalstring + ")/3";
+    evalstring = evalstring + ")/" + bestModels[branchNumber];
 
 
     fprintf(stdout, "\n");

@@ -165,16 +165,6 @@ function addRate2BranchAdvanced(lfID, nucCF, branchName, defaultModel, modelList
     fprintf(stdout, "\n");
     //ExecuteCommands ("Model BSREL = (matrixString, " + lfbaseFreqsID + ", EXPLICIT_FORM_MATRIX_EXPONENTIAL);");
 
-    // But it would be nice to have a BSREL1.
-    /*
-    if (modelList[1] == 0)
-    {
-        // All we need is a matrix string
-        matrixString = "Exp(MGMatrix1)";
-        ExecuteCommands ("Model BSREL1 = (matrixString, " + lfbaseFreqsID + ", EXPLICIT_FORM_MATRIX_EXPONENTIAL);");
-        modelList[1] = "BSREL1";
-    }
-    */
 
     // XXX There is a pretty good chance that much of the code above is
     // similarly conditioned, but sorting it from what must be computed to
@@ -183,6 +173,18 @@ function addRate2BranchAdvanced(lfID, nucCF, branchName, defaultModel, modelList
     {
         ExecuteCommands ("Model BSREL" + nextOmega + " = (matrixString, " + lfbaseFreqsID + ", EXPLICIT_FORM_MATRIX_EXPONENTIAL);");
         modelList[nextOmega] = "BSREL" + nextOmega;
+    }
+
+    // But it would be nice to have a BSREL1.
+    // Testing
+    /*
+    */
+    if (modelList[1] == 0)
+    {
+        // All we need is a matrix string
+        matrixString = "Exp(MGMatrix1)";
+        ExecuteCommands ("Model BSREL1 = (matrixString, " + lfbaseFreqsID + ", EXPLICIT_FORM_MATRIX_EXPONENTIAL);");
+        modelList[1] = "BSREL1";
     }
 
     new_tree_string = orig_tree_string;
