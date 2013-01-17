@@ -72,6 +72,33 @@ VERBOSITY_LEVEL               = 1;
 
 LikelihoodFunction three_LF  = (dsf,mixtureTree);
 
+    /*
+    temp_omegas = {};
+    for (mI = 0; mI < Abs(model_assignments); mI = mI + 1)
+    {
+        //temp_omegas = {};
+        //if (model_assignments[mI] == 1)
+        //{
+            temp_omegas[mI] = 10;
+            srate = Eval (lfTreeID + "." + branchName + ".syn");
+            nsrate = Eval (lfTreeID + "." + branchName + ".nonsyn");
+            fprintf(stdout, "" + nsrate + ", " + srate + "\n");
+            if (srate > 0)
+            {
+                temp_omegas[mI] = Min (10, nsrate/srate);
+            }
+        //}
+        //else
+        //{
+            //for (oI = 1; oI < model_assignments[mI]; oI = oI + 1)
+            //{
+                //ExecuteCommands( "tempOmega = " + lfTreeID + "." + branch_names[mI] + ".omega" + oI + ";");
+                //temp_omegas[oI] = tempOmega;
+            //}
+        //}
+        //temp_branches[mI] = tempOmega;
+    }
+    */
 //-------------------------------------------------------------------------
 // So at this point we have the MG94 model. Now we will go through the
 // branches and add&optimize rate classes.
@@ -177,9 +204,11 @@ for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
     }
     fprintf(stdout, "\n");
 }
+/*
 fprintf(stdout, "\n");
 fprintf(stdout, best_models);
 fprintf(stdout, "\n");
+*/
 
 //assignModels2Branches("three_LF", nucCF, "MGL", bNames, best_models, algn_len, model_list);
 // Testing
@@ -274,10 +303,6 @@ treePath = csvFilePath + ".ps";
 fprintf (treePath, CLEAR_FILE, psTree);
 */
 // XXX test
-// So the problem is that branches with one omega don't actually have
-// an omega parameter. This is then called upon for hte branch length
-// calculation, but has the default value of zero, leading to a branch
-// length of zero XXX
 for (bI = 0; bI < totalBranchCount; bI = bI + 1)
 {
     calculateBranchLengthByName(modelList, best_models, "mixtureTree", bNames[bI], bI);
@@ -414,7 +439,8 @@ function calculateBranchLengthByName (modelList, bestModels, treeName, branchNam
             pauxs[oI] = Eval("`treeName`.`branchName`.Paux" + oI);
         }
     }
-    evalstring = evalstring + ")/" + bestModels[branchNumber];
+    //evalstring = evalstring + ")/" + bestModels[branchNumber];
+    evalstring = evalstring + ")/1";
 
 
     fprintf(stdout, "\n");

@@ -252,15 +252,22 @@ function assignModels2Branches(lfID, nucCF, defaultModel, branch_names, model_as
     lfTree = lfInfoAA["Trees"];
     lfTreeID = lfTree[0];
 
-    // XXX this is... wrong. Recapture previous results before replacing tree
-    // structure
-    orig_omega = 10;
-    srate = Eval (lfTreeID + "." + branchName + ".syn");
-    nsrate = Eval (lfTreeID + "." + branchName + ".nonsyn");
-    if (srate > 0)
+    temp_omegas = {};
+    for (mI = 0; mI < Abs(model_assignments); mI = mI + 1)
     {
-        orig_omega = Min (10, nsrate/srate);
+        temp_omegas[mI] = 10;
+        srate = Eval (lfTreeID + "." + branch_names[mI] + ".syn");
+        nsrate = Eval (lfTreeID + "." + branch_names[mI] + ".nonsyn");
+        //fprintf(stdout, "" + nsrate + ", " + srate + "\n");
+        if (srate > 0)
+        {
+            temp_omegas[mI] = Min (10, nsrate/srate);
+        }
     }
+
+    //fprintf(stdout, "\nomega results: \n");
+    //fprintf(stdout, temp_omegas);
+    //fprintf(stdout, "\n");
 
     ExecuteCommands ("orig_tree_string = Format(" + lfTreeID + ",1,1)");
     final_tree_string = orig_tree_string;
@@ -281,20 +288,22 @@ function assignModels2Branches(lfID, nucCF, defaultModel, branch_names, model_as
 
     for (mod_assgn_I = 0; mod_assgn_I < Abs(model_assignments); mod_assgn_I = mod_assgn_I + 1)
     {
-        //if (model_assignments[mod_assgn_I] > 1)
-        // Testing
-        if (model_assignments[mod_assgn_I] > 1) // goal = 0
+        if (model_assignments[mod_assgn_I] > 0)
         {
             for (omegaI = 1; omegaI <= model_assignments[omegaI]; omegaI = omegaI + 1)
             {
-                ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".omega" + omegaI + " = " + (orig_omega * omegaI) + ";");
+                ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".omega" + omegaI + " = " + (temp_omegas[mod_assgn_I] * (2^omegaI)) + ";");
                 if (omegaI != model_assignments[mod_assgn_I])
                 {
+                    //fprintf(stdout, "\nomega: " + omegaI + " opt: " + model_assignments[mod_assgn_I] + " branch: " + branch_names[mod_assgn_I] + "\n");
                     ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".Paux" + omegaI + " = " + ((algn_len - 1)/algn_len) + ";");
                     ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".Paux" + omegaI + " :< 1;");
                 }
             }
-            ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".Paux1 = " + (1 - (model_assignments[mod_assgn_I] * (1/algn_len))) + ";");
+            if (model_assignments[mod_assgn_I] > 1)
+            {
+                ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".Paux1 = " + (1 - (model_assignments[mod_assgn_I] * (1/algn_len))) + ";");
+            }
         }
     }
 
