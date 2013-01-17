@@ -212,6 +212,12 @@ fprintf(stdout, "\n");
 
 //assignModels2Branches("three_LF", nucCF, "MGL", bNames, best_models, algn_len, model_list);
 // Testing
+/*
+for (bI = 0; bI < totalBranchCount; bI = bI + 1)
+{
+    best_models[bI] = 1;
+}
+*/
 assignModels2Branches("three_LF", nucCF, "BSREL1", bNames, best_models, algn_len, model_list);
 
 VERBOSITY_LEVEL = 10; // 10 prints EVERYTHING
@@ -302,7 +308,6 @@ psTree = PSTreeString (T,"STRING_SUPPLIED_LENGTHS",{{400,height}});
 treePath = csvFilePath + ".ps";
 fprintf (treePath, CLEAR_FILE, psTree);
 */
-// XXX test
 for (bI = 0; bI < totalBranchCount; bI = bI + 1)
 {
     calculateBranchLengthByName(modelList, best_models, "mixtureTree", bNames[bI], bI);
@@ -440,7 +445,7 @@ function calculateBranchLengthByName (modelList, bestModels, treeName, branchNam
         }
     }
     //evalstring = evalstring + ")/" + bestModels[branchNumber];
-    evalstring = evalstring + ")/1";
+    evalstring = evalstring + ")/3";
 
 
     fprintf(stdout, "\n");
