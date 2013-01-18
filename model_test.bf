@@ -204,11 +204,9 @@ for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
     }
     fprintf(stdout, "\n");
 }
-/*
 fprintf(stdout, "\n");
 fprintf(stdout, best_models);
 fprintf(stdout, "\n");
-*/
 
 //assignModels2Branches("three_LF", nucCF, "MGL", bNames, best_models, algn_len, model_list);
 // Testing
