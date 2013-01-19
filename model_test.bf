@@ -8,6 +8,21 @@ LoadFunctionLibrary("CF3x4");
 LoadFunctionLibrary("BranchSiteTemplate");
 LoadFunctionLibrary("AddRateClass.bf");
 
+
+// MPI stuff ----------
+mpi_mode = 0;
+if (MPI_NODE_COUNT > 1)
+{
+    fprintf(stdout, "\nWorking in mpimode...\n");
+    mpi_mode = 1;
+    _MPI_NODE_STATUS = {MPI_NODE_COUNT-1,1}["-1"];
+}
+else
+{
+    fprintf(stdout, "\nRunning locally... \n");
+}
+// ---------- MPI stuff
+
 modelList = {};
 
 DataSet 			ds 				= ReadDataFile(PROMPT_FOR_FILE);
@@ -140,70 +155,93 @@ for (taxI = 0; taxI < totalBranchCount; taxI = taxI + 1)
 
 for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
 {
-
-    fprintf(stdout, "\n");
-    fprintf(stdout, "New branch: \n");
-    lastRes = origRes;
-    omegaNumber = 1;
-
-    better_bic = 1;
-    last_bic = orig_bic;
-
-    bic_run_count = 0;
-
-    while (better_bic == 1)
+    if (mpi_mode)
     {
-        addRate2Branch("three_LF", nucCF, bNames[branchI], "MGL", modelList, algn_len, 1);
-        //addRate2Branch("three_LF", nucCF, bNames[branchI], "BSREL1", modelList, algn_len, 1);
-        omegaNumber = omegaNumber + 1;
-
-        lfOut	= csvFilePath + ".treePlusRate." + bNames[branchI] + "." + omegaNumber + ".fit";
-        LIKELIHOOD_FUNCTION_OUTPUT = 7;
-        fprintf (lfOut, CLEAR_FILE, three_LF);
-        LIKELIHOOD_FUNCTION_OUTPUT = 2;
-
-        VERBOSITY_LEVEL = 10;   // 10 prints EVERYTHING
-                                // 0 prints nothing
-
-        Optimize (res_three_LF,three_LF);
-        fprintf(stdout, "\n");
-
-        iter_likelihood = res_three_LF[1][0];
-        iter_parameters = res_three_LF[1][1];
-
-        iter_bic = calcBIC(iter_likelihood, iter_parameters, iter_samples);
-        fprintf(stdout, "This iterations likelihood: " + iter_likelihood);
-        fprintf(stdout, "\n");
-        fprintf(stdout, "This iterations parameter count: " + iter_parameters);
-        fprintf(stdout, "\n");
-        fprintf(stdout, "This iterations sample count: " + iter_samples);
-        fprintf(stdout, "\n");
-        fprintf(stdout, "This iterations BIC: " + iter_bic);
-        fprintf(stdout, "\n");
-
-        lfOut	= csvFilePath + ".optTreePlusRate." + bNames[branchI] + "." + omegaNumber + ".fit";
-        LIKELIHOOD_FUNCTION_OUTPUT = 7;
-        fprintf (lfOut, CLEAR_FILE, three_LF);
-        LIKELIHOOD_FUNCTION_OUTPUT = 2;
-
-        lastRes = res_three_LF[1][0];
-        if (iter_bic == last_bic)
-        {
-            bic_run_count = bic_run_count + 1;
-        }
-        if ((iter_bic > last_bic) || (bic_run_count > 2))
-        {
-            fprintf(stdout, "Done with this branch...\n");
-            better_bic = 0;
-        }
-        else
-        {
-            best_models[branchI] = best_models[branchI] + 1;
-        }
-        last_bic = iter_bic;
+        sendAnMPIjob ("three_LF", nucCF, bNames[branchI], branchI, "MGL", modelList, algn_len, 1, origRes, orig_bic);
     }
-    fprintf(stdout, "\n");
+    else
+    {
+        best_models[branchI] = optimizeBranchOmegas("three_LF", nucCF, bNames[branchI], branchI, "MGL", modelList, algn_len, 1, origRes, orig_bic)
+    /*
+        fprintf(stdout, "\n");
+        fprintf(stdout, "New branch: \n");
+        lastRes = origRes;
+        omegaNumber = 1;
+
+        better_bic = 1;
+        last_bic = orig_bic;
+
+        bic_run_count = 0;
+
+        while (better_bic == 1)
+        {
+            addRate2Branch("three_LF", nucCF, bNames[branchI], "MGL", modelList, algn_len, 1);
+            //addRate2Branch("three_LF", nucCF, bNames[branchI], "BSREL1", modelList, algn_len, 1);
+            omegaNumber = omegaNumber + 1;
+
+            lfOut	= csvFilePath + ".treePlusRate." + bNames[branchI] + "." + omegaNumber + ".fit";
+            LIKELIHOOD_FUNCTION_OUTPUT = 7;
+            fprintf (lfOut, CLEAR_FILE, three_LF);
+            LIKELIHOOD_FUNCTION_OUTPUT = 2;
+
+            VERBOSITY_LEVEL = 10;   // 10 prints EVERYTHING
+                                    // 0 prints nothing
+
+            Optimize (res_three_LF,three_LF);
+            fprintf(stdout, "\n");
+
+            iter_likelihood = res_three_LF[1][0];
+            iter_parameters = res_three_LF[1][1];
+
+            iter_bic = calcBIC(iter_likelihood, iter_parameters, iter_samples);
+            fprintf(stdout, "This iterations likelihood: " + iter_likelihood);
+            fprintf(stdout, "\n");
+            fprintf(stdout, "This iterations parameter count: " + iter_parameters);
+            fprintf(stdout, "\n");
+            fprintf(stdout, "This iterations sample count: " + iter_samples);
+            fprintf(stdout, "\n");
+            fprintf(stdout, "This iterations BIC: " + iter_bic);
+            fprintf(stdout, "\n");
+
+            lfOut	= csvFilePath + ".optTreePlusRate." + bNames[branchI] + "." + omegaNumber + ".fit";
+            LIKELIHOOD_FUNCTION_OUTPUT = 7;
+            fprintf (lfOut, CLEAR_FILE, three_LF);
+            LIKELIHOOD_FUNCTION_OUTPUT = 2;
+
+            lastRes = res_three_LF[1][0];
+            if (iter_bic == last_bic)
+            {
+                bic_run_count = bic_run_count + 1;
+            }
+            if ((iter_bic > last_bic) || (bic_run_count > 2))
+            {
+                fprintf(stdout, "Done with this branch...\n");
+                better_bic = 0;
+            }
+            else
+            {
+                best_models[branchI] = best_models[branchI] + 1;
+            }
+            last_bic = iter_bic;
+        }
+        fprintf(stdout, "\n");
+        */
+    } // endif (mpi_mode)
 }
+if (mpi_mode)
+{
+    tempMPIcounter = totalBranchCount;
+    tempMPIcounter = +(_MPI_NODE_STATUS["_MATRIX_ELEMENT_VALUE_>=0"]);
+    while (tempMPIcounter > 0)
+    {
+        receiveAnMPIjob ();
+        best_models[results[0]] = results[1];
+        tempMPIcounter = tempMPIcounter -1;
+    }
+}
+
+
+
 fprintf(stdout, "\n");
 fprintf(stdout, best_models);
 fprintf(stdout, "\n");
@@ -314,70 +352,108 @@ for (bI = 0; bI < totalBranchCount; bI = bI + 1)
 //fprintf(stdout, extractBranchInformation ("mixtureTree", "omega", "MGMatrix", "Paux", "codon3x4", 0));
 
 return pValueByBranch;
-//--------------------------------------------------------------------------------------------------------------
 
-function extractBranchInformation (treeID, _omega_pattern, _model_prefix, _freq_prefix, _freq_vector, _do_mult) {
-    _branchNames   = Eval ("BranchName(`treeID`,-1)");
-    _branchCount   = Columns (_branchNames) - 1;
+//------------------------------------------------------------------------------------------------------------------------
+function optimizeBranchOmegas(lfID, nucCF, branchName, branchNumber, defaultModel, modelList, algn_len, replace_tree, origRes, orig_bic)
+{
+    tempOmegaNumber = 1;
+    lastRes = origRes;
+    omegaNumber = 1;
+    better_bic = 1;
+    last_bic = orig_bic;
 
-    _toReturn         = {"Names": {}, "Props": {_branchCount,2}};  // cat count, branch length
-    _brLenExpressions = {};
-    _brLenLocals      = {};
+    bic_run_count = 0;
 
-    for (_i = 0; _i < _branchCount; _i += 1) {
-        _expression = treeID + "\\." + _branchNames[_i] + "\\." + _omega_pattern;
-        ExecuteCommands("GetInformation (_matchedVars, \"`_expression`\")");
-        _catCount = Columns (_matchedVars);
-        _toReturn ["Names"] + _branchNames[_i];
-        (_toReturn["Props"])[_i][0] = _catCount;
+    while (better_bic == 1)
+    {
+        addRate2Branch("three_LF", nucCF, branchName, "MGL", modelList, algn_len, 1);
+        omegaNumber = omegaNumber + 1;
 
-        _brLen     = 0;
-        _totalWeight = 0;
-        for (_c = 1; _c <= _catCount; _c = _c + 1) {
-            fprintf(stdout, "Processing omega number ");
-            fprintf(stdout, _c);
-            fprintf(stdout, "\n");
-            _modelID = _model_prefix + _c;
-            if (Abs (_brLenExpressions[_modelID]) == 0) {
-                fprintf(stdout, "Making the model...\n");
-                ExecuteCommands ("Model _internal = (`_modelID`, `_freq_vector`, _do_mult);");
-                GetString (_bl, _internal, -1);
-                _brLenExpressions [_modelID] = _bl;
-                _localParameters = {};
-                _p = 1;
-                GetString (_locP, _internal, 0);
-                while (_locP != None) {
-                    _localParameters + _locP;
-                    GetString (_locP, _internal, _p);
-                    _p += 1;
-                }
-                _brLenLocals [_modelID] = _localParameters;
-            }
-            fprintf(stdout, "Done making the model\n");
-            for (_lpc = 0; _lpc < Abs (_brLenLocals [_modelID]); _lpc += 1) {
-                ExecuteCommands ((_brLenLocals [_modelID])[_lpc] + "=" + treeID + "." + _branchNames[_i] + "." + (_brLenLocals [_modelID])[_lpc]);
-            }
-            fprintf(stdout, _brLenExpressions);
-            _thisModelLength = Eval (_brLenExpressions[_modelID]);
-            if (_c < _catCount) {
-                _freqW = Eval (treeID + "." + _branchNames[_i] + "." + _freq_prefix + _c);
-            } else {
-                _freqW = 1-Eval (treeID + "." + _branchNames[_i] + "." + _freq_prefix + _c);
-            }
-            _thisModelWeight = (1-_totalWeight)*_freqW;
+        /*
+        lfOut	= csvFilePath + ".treePlusRate." + bNames[branchI] + "." + omegaNumber + ".fit";
+        LIKELIHOOD_FUNCTION_OUTPUT = 7;
+        fprintf (lfOut, CLEAR_FILE, three_LF);
+        LIKELIHOOD_FUNCTION_OUTPUT = 2;
 
-            _totalWeight += _thisModelWeight;
-            _brLen += _thisModelWeight * _thisModelLength;
-            fprintf(stdout, "Done with this omega\n");
+        VERBOSITY_LEVEL = 10;   // 10 prints EVERYTHING
+                                // 0 prints nothing
+        */
+
+        Optimize (res_three_LF,three_LF);
+        //fprintf(stdout, "\n");
+
+        iter_likelihood = res_three_LF[1][0];
+        iter_parameters = res_three_LF[1][1];
+
+        iter_bic = calcBIC(iter_likelihood, iter_parameters, iter_samples);
+        /*
+        fprintf(stdout, "This iterations likelihood: " + iter_likelihood);
+        fprintf(stdout, "\n");
+        fprintf(stdout, "This iterations parameter count: " + iter_parameters);
+        fprintf(stdout, "\n");
+        fprintf(stdout, "This iterations sample count: " + iter_samples);
+        fprintf(stdout, "\n");
+        fprintf(stdout, "This iterations BIC: " + iter_bic);
+        fprintf(stdout, "\n");
+
+        lfOut	= csvFilePath + ".optTreePlusRate." + bNames[branchI] + "." + omegaNumber + ".fit";
+        LIKELIHOOD_FUNCTION_OUTPUT = 7;
+        fprintf (lfOut, CLEAR_FILE, three_LF);
+        LIKELIHOOD_FUNCTION_OUTPUT = 2;
+        */
+
+        lastRes = res_three_LF[1][0];
+        if (iter_bic == last_bic)
+        {
+            bic_run_count = bic_run_count + 1;
         }
-        fprintf(stdout, "Done with this branch\n");
-        (_toReturn["Props"]) [_i][1] = _brLen;
-        fprintf(stdout, "Done with this branch part 2\n");
+        if ((iter_bic > last_bic) || (bic_run_count > 2))
+        {
+            //fprintf(stdout, "Done with this branch...\n");
+            better_bic = 0;
+        }
+        else
+        {
+            tempOmegaNumber = tempOmegaNumber + 1;
+        }
+        last_bic = iter_bic;
     }
-    fprintf(stdout, "Done with ALL branches\n");
+    // fprintf(stdout, "\n");
+    return tempOmegaNumber;
+}
 
+//------------------------------------------------------------------------------------------------------------------------
+function sendAnMPIjob (lfID, nucCF, branchName, branchNumber, defaultModel, modelList, algn_len, replace_tree, origRes, orig_bic)
+{
+    mpiNodeI = 0; // I know scoping doesn't matter, but it should
+    for (mpiNodeI = 0; mpiNodeI < MPI_NODE_COUNT-1; mpiNodeI += 1)
+    {
+        if (_MPI_NODE_STATUS[_mpiNode] < 0)
+        {
+            break;
+        }
+    }
+    if (mpiNodeI == MPI_NODE_COUNT)
+    {
+        mpiNodeI = ReceiveAnMPIJob ();
+    }
+    _MPI_NODE_STATUS[mpiNodeI] = branchNumber;
+    MPISend(mpiNodeI + 1, "optimizeBranchOmegas(`lfID`, `nucCF`, `branchName`, `branchNumber`, `defaultModel`, `modelList`, `algn_len`, `replace_tree`, `origRes`, `orig_bic`)");
+    return 0;
+}
 
-    return _toReturn;
+//------------------------------------------------------------------------------------------------------------------------
+function receiveAnMPIjob ()
+{
+    MPIReceive (-1, fromNode, result);
+    fromNode += (-1);
+    doneID = _MPI_NODE_STATUS[fromNode]-1;
+    _MPI_NODE_STATUS[fromNode] = -1;
+    tbr = {};
+    tbr[0] = doneID;
+    tbr[1] = result;
+    best_models[doneID] = result;
+    return fromNode;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
