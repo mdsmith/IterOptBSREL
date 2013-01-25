@@ -197,8 +197,12 @@ branchValues = {};
 if (MPI_NODE_COUNT > 1) {
     MPI_NODE_STATE = {MPI_NODE_COUNT-1,1};
     MPI_NODE_STATE[0] = "";
+    fprintf(stdout, "MPI_NODE_COUNT = " + MPI_NODE_COUNT + "\n");
 }
-
+else
+{
+    fprintf(stdout, "No MPI nodes detected\n");
+}
 
 for (k = 0; k < totalBranchCount; k+=1) {
     fprintf (stdout, "\n[BS-REL PHASE 2. Branch '", bNames[k], "']\n");

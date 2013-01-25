@@ -157,6 +157,7 @@ for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
 {
     if (mpi_mode)
     {
+        fprintf(stdout, "\nSending an MPI job\n");
         sendAnMPIjob ("three_LF", nucCF, bNames[branchI], branchI, "MGL", modelList, algn_len, 1, origRes, orig_bic);
     }
     else
@@ -235,7 +236,8 @@ if (mpi_mode)
     while (tempMPIcounter > 0)
     {
         receiveAnMPIjob ();
-        best_models[results[0]] = results[1];
+        fprintf(stdout, "\nMPI job received\n");
+        //best_models[results[0]] = results[1];
         tempMPIcounter = tempMPIcounter -1;
     }
 }
@@ -254,6 +256,8 @@ for (bI = 0; bI < totalBranchCount; bI = bI + 1)
     best_models[bI] = 1;
 }
 */
+// XXX If the optimal number of omegas is discovered using MPI, BSREL1 might
+// not exist, in fact the entire model list may be empty on the host node.
 assignModels2Branches("three_LF", nucCF, "BSREL1", bNames, best_models, algn_len, model_list);
 
 VERBOSITY_LEVEL = 10; // 10 prints EVERYTHING
@@ -425,20 +429,33 @@ function optimizeBranchOmegas(lfID, nucCF, branchName, branchNumber, defaultMode
 //------------------------------------------------------------------------------------------------------------------------
 function sendAnMPIjob (lfID, nucCF, branchName, branchNumber, defaultModel, modelList, algn_len, replace_tree, origRes, orig_bic)
 {
-    mpiNodeI = 0; // I know scoping doesn't matter, but it should
+    fprintf(stdout, "\nLooking for MPI node...\n");
     for (mpiNodeI = 0; mpiNodeI < MPI_NODE_COUNT-1; mpiNodeI += 1)
     {
-        if (_MPI_NODE_STATUS[_mpiNode] < 0)
+        if (_MPI_NODE_STATUS[mpiNodeI] < 0)
         {
             break;
         }
     }
-    if (mpiNodeI == MPI_NODE_COUNT)
+    fprintf(stdout, "\nMPI node found\n");
+    if (mpiNodeI == MPI_NODE_COUNT-1)
     {
-        mpiNodeI = ReceiveAnMPIJob ();
+        mpiNodeI = receiveAnMPIjob ();
     }
     _MPI_NODE_STATUS[mpiNodeI] = branchNumber;
-    MPISend(mpiNodeI + 1, "optimizeBranchOmegas(`lfID`, `nucCF`, `branchName`, `branchNumber`, `defaultModel`, `modelList`, `algn_len`, `replace_tree`, `origRes`, `orig_bic`)");
+    // Reference best_models[branchI] = optimizeBranchOmegas("three_LF", nucCF, bNames[branchI], branchI, "MGL", modelList, algn_len, 1, origRes, orig_bic)
+    mpiCommandString = "optimizeBranchOmegas(\"`lfID`\", nucCF, \"`branchName`\", branchNumber, \"`defaultModel`\", modelList, algn_len, replace_tree, origRes, orig_bic)";
+    //fprintf(stdout, "\n");
+    //fprintf(stdout, mpiCommandString);
+    //fprintf(stdout, "\n");
+    //ExecuteCommands(mpiCommandString);
+    //MPISend(mpiNodeI + 1, "optimizeBranchOmegas(`lfID`, `nucCF`, `branchName`, `branchNumber`, `defaultModel`, `modelList`, `algn_len`, `replace_tree`, `origRes`, `orig_bic`)");
+    // XXX So the problem is that variables don't transfer to the MPI nodes.
+    // Nor do objects. So the modificaiton needs to be done locally and the
+    // optimization distally.
+    omg_best_omega_ever = 3;
+    mpiCommandString = "return "+ omg_best_omega_ever + ";";
+    MPISend(mpiNodeI + 1, mpiCommandString);
     return 0;
 }
 
@@ -449,9 +466,9 @@ function receiveAnMPIjob ()
     fromNode += (-1);
     doneID = _MPI_NODE_STATUS[fromNode]-1;
     _MPI_NODE_STATUS[fromNode] = -1;
-    tbr = {};
-    tbr[0] = doneID;
-    tbr[1] = result;
+    //tbr = {};
+    //tbr[0] = doneID;
+    //tbr[1] = result;
     best_models[doneID] = result;
     return fromNode;
 }
