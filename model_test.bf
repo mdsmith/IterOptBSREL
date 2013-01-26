@@ -87,33 +87,6 @@ VERBOSITY_LEVEL               = 1;
 
 LikelihoodFunction three_LF  = (dsf,mixtureTree);
 
-    /*
-    temp_omegas = {};
-    for (mI = 0; mI < Abs(model_assignments); mI = mI + 1)
-    {
-        //temp_omegas = {};
-        //if (model_assignments[mI] == 1)
-        //{
-            temp_omegas[mI] = 10;
-            srate = Eval (lfTreeID + "." + branchName + ".syn");
-            nsrate = Eval (lfTreeID + "." + branchName + ".nonsyn");
-            fprintf(stdout, "" + nsrate + ", " + srate + "\n");
-            if (srate > 0)
-            {
-                temp_omegas[mI] = Min (10, nsrate/srate);
-            }
-        //}
-        //else
-        //{
-            //for (oI = 1; oI < model_assignments[mI]; oI = oI + 1)
-            //{
-                //ExecuteCommands( "tempOmega = " + lfTreeID + "." + branch_names[mI] + ".omega" + oI + ";");
-                //temp_omegas[oI] = tempOmega;
-            //}
-        //}
-        //temp_branches[mI] = tempOmega;
-    }
-    */
 //-------------------------------------------------------------------------
 // So at this point we have the MG94 model. Now we will go through the
 // branches and add&optimize rate classes.
@@ -146,15 +119,80 @@ orig_likelihood = res_three_LF[1][0];
 orig_parameters = res_three_LF[1][1];
 orig_bic = calcBIC(orig_likelihood, orig_parameters, iter_samples);
 
+last_bics = {};
 best_models = {};
+done_branches = {};
+working_models = {};
 
-for (taxI = 0; taxI < totalBranchCount; taxI = taxI + 1)
+for (initI = 0; initI < totalBranchCount; initI = initI + 1)
 {
-    best_models[taxI] = 1;
+    best_models[initI] = 1;
+    done_branches[initI] = 0;
+    working_models[initI] = 1;
+    last_bics[initI] = orig_bic;
 }
 
-for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
+
+branchesToOptimize = totalBranchCount;
+
+while (branchesToOptimize > 0)
 {
+    for (launchI = 0; launchI < totalBranchCount; launchI = launchI + 1)
+    {
+        if (done_branches[launchI] == 0)
+        {
+            // working_models is used to set the model number for each
+            // branch in the LF. This can be removed later on and best_models
+            // can be used if you want to use the optimization results for
+            // all branches to optimize for the next step.
+            for (wmI = 0; wmI < totalBranchCount; wmI = wmI + 1)
+            {
+                working_models[wmI] = 1;
+            }
+            working_models[launchI] = best_models[launchI] + 1;
+            assignModels2Branches("three_LF", nucCF, "MGL", bNames, working_models, algn_len, model_list); // XXX this function may not have the capacity to create models and add them to the model list yet.
+            if (mpi_mode)
+            {
+                // Fork:
+                sendAnMPIjob("three_LF");
+            }
+            else
+            {
+                OptBranch("three_LF", launchI);
+            }
+        }
+    }
+    //tempMPIcounter = branchesToOptimize;  // This is more clear than using
+                                            //_MPI_NODE_STATUS
+    if (mpi_mode)
+    {
+        // Join:
+        tempMPIcounter = +(_MPI_NODE_STATUS["_MATRIX_ELEMENT_VALUE_>=0"]);
+        while (tempMPIcounter > 0)
+        {
+            // This should get the result array back from the node, send it off
+            // to get the BIC and test to see if the appropriate element of
+            // best_models should be increased (or if done_branches should be
+            // set to 1)
+            receiveAnMPIjob();
+            tempMPIcounter = tempMPIcounter -1;
+        }
+    }
+
+    branchesToOptimize = 0;
+    for (checkI = 0; checkI < totalBranchCount; checkI = checkI + 1)
+    {
+        if (done_branches[checkI] == 0)
+        {
+            branchesToOptimize = branchesToOptimize + 1;
+        }
+    }
+}
+
+
+//for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
+//{
+/*
     if (mpi_mode)
     {
         fprintf(stdout, "\nSending an MPI job\n");
@@ -162,7 +200,9 @@ for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
     }
     else
     {
-        best_models[branchI] = optimizeBranchOmegas("three_LF", nucCF, bNames[branchI], branchI, "MGL", modelList, algn_len, 1, origRes, orig_bic)
+    */
+        //best_models[branchI] =
+        //optimizeBranchOmegas("three_LF", nucCF, bNames[branchI], branchI, "MGL", modelList, algn_len, 1, origRes, orig_bic, best_models) // Most recent
     /*
         fprintf(stdout, "\n");
         fprintf(stdout, "New branch: \n");
@@ -227,8 +267,9 @@ for (branchI = 0; branchI < totalBranchCount; branchI = branchI + 1)
         }
         fprintf(stdout, "\n");
         */
-    } // endif (mpi_mode)
-}
+    //} // endif (mpi_mode)
+//}
+/*
 if (mpi_mode)
 {
     tempMPIcounter = totalBranchCount;
@@ -241,6 +282,7 @@ if (mpi_mode)
         tempMPIcounter = tempMPIcounter -1;
     }
 }
+*/
 
 
 
@@ -358,7 +400,8 @@ for (bI = 0; bI < totalBranchCount; bI = bI + 1)
 return pValueByBranch;
 
 //------------------------------------------------------------------------------------------------------------------------
-function optimizeBranchOmegas(lfID, nucCF, branchName, branchNumber, defaultModel, modelList, algn_len, replace_tree, origRes, orig_bic)
+/*
+function optimizeBranchOmegasMPI(lfID, nucCF, branchName, branchNumber, defaultModel, modelList, algn_len, replace_tree, origRes, orig_bic, best_models)
 {
     tempOmegaNumber = 1;
     lastRes = origRes;
@@ -373,15 +416,13 @@ function optimizeBranchOmegas(lfID, nucCF, branchName, branchNumber, defaultMode
         addRate2Branch("three_LF", nucCF, branchName, "MGL", modelList, algn_len, 1);
         omegaNumber = omegaNumber + 1;
 
-        /*
-        lfOut	= csvFilePath + ".treePlusRate." + bNames[branchI] + "." + omegaNumber + ".fit";
-        LIKELIHOOD_FUNCTION_OUTPUT = 7;
-        fprintf (lfOut, CLEAR_FILE, three_LF);
-        LIKELIHOOD_FUNCTION_OUTPUT = 2;
-
-        VERBOSITY_LEVEL = 10;   // 10 prints EVERYTHING
-                                // 0 prints nothing
-        */
+        //lfOut	= csvFilePath + ".treePlusRate." + bNames[branchI] + "." + omegaNumber + ".fit";
+        //LIKELIHOOD_FUNCTION_OUTPUT = 7;
+        //fprintf (lfOut, CLEAR_FILE, three_LF);
+        //LIKELIHOOD_FUNCTION_OUTPUT = 2;
+//
+        //VERBOSITY_LEVEL = 10;   // 10 prints EVERYTHING
+                                //// 0 prints nothing
 
         Optimize (res_three_LF,three_LF);
         //fprintf(stdout, "\n");
@@ -390,21 +431,19 @@ function optimizeBranchOmegas(lfID, nucCF, branchName, branchNumber, defaultMode
         iter_parameters = res_three_LF[1][1];
 
         iter_bic = calcBIC(iter_likelihood, iter_parameters, iter_samples);
-        /*
-        fprintf(stdout, "This iterations likelihood: " + iter_likelihood);
-        fprintf(stdout, "\n");
-        fprintf(stdout, "This iterations parameter count: " + iter_parameters);
-        fprintf(stdout, "\n");
-        fprintf(stdout, "This iterations sample count: " + iter_samples);
-        fprintf(stdout, "\n");
-        fprintf(stdout, "This iterations BIC: " + iter_bic);
-        fprintf(stdout, "\n");
+        //fprintf(stdout, "This iterations likelihood: " + iter_likelihood);
+        //fprintf(stdout, "\n");
+        //fprintf(stdout, "This iterations parameter count: " + iter_parameters);
+        //fprintf(stdout, "\n");
+        //fprintf(stdout, "This iterations sample count: " + iter_samples);
+        //fprintf(stdout, "\n");
+        //fprintf(stdout, "This iterations BIC: " + iter_bic);
+        //fprintf(stdout, "\n");
 
-        lfOut	= csvFilePath + ".optTreePlusRate." + bNames[branchI] + "." + omegaNumber + ".fit";
-        LIKELIHOOD_FUNCTION_OUTPUT = 7;
-        fprintf (lfOut, CLEAR_FILE, three_LF);
-        LIKELIHOOD_FUNCTION_OUTPUT = 2;
-        */
+        //lfOut	= csvFilePath + ".optTreePlusRate." + bNames[branchI] + "." + omegaNumber + ".fit";
+        //LIKELIHOOD_FUNCTION_OUTPUT = 7;
+        //fprintf (lfOut, CLEAR_FILE, three_LF);
+        //LIKELIHOOD_FUNCTION_OUTPUT = 2;
 
         lastRes = res_three_LF[1][0];
         if (iter_bic == last_bic)
@@ -423,9 +462,101 @@ function optimizeBranchOmegas(lfID, nucCF, branchName, branchNumber, defaultMode
         last_bic = iter_bic;
     }
     // fprintf(stdout, "\n");
+    best_models[branchI] = tempOmegaNumber;
+    return tempOmegaNumber;
+
+
+}
+*/
+
+//------------------------------------------------------------------------------------------------------------------------
+/*
+function optimizeBranchOmegas(lfID, nucCF, branchName, branchNumber, defaultModel, modelList, algn_len, replace_tree, origRes, orig_bic, best_models)
+{
+    tempOmegaNumber = 1;
+    lastRes = origRes;
+    omegaNumber = 1;
+    better_bic = 1;
+    last_bic = orig_bic;
+
+    bic_run_count = 0;
+
+    while (better_bic == 1)
+    {
+        addRate2Branch("three_LF", nucCF, branchName, "MGL", modelList, algn_len, 1);
+        omegaNumber = omegaNumber + 1;
+
+        //lfOut	= csvFilePath + ".treePlusRate." + bNames[branchI] + "." + omegaNumber + ".fit";
+        //LIKELIHOOD_FUNCTION_OUTPUT = 7;
+        //fprintf (lfOut, CLEAR_FILE, three_LF);
+        //LIKELIHOOD_FUNCTION_OUTPUT = 2;
+//
+        //VERBOSITY_LEVEL = 10;   // 10 prints EVERYTHING
+                                //// 0 prints nothing
+
+        Optimize (res_three_LF,three_LF);
+        //fprintf(stdout, "\n");
+
+        iter_likelihood = res_three_LF[1][0];
+        iter_parameters = res_three_LF[1][1];
+
+        iter_bic = calcBIC(iter_likelihood, iter_parameters, iter_samples);
+        //fprintf(stdout, "This iterations likelihood: " + iter_likelihood);
+        //fprintf(stdout, "\n");
+        //fprintf(stdout, "This iterations parameter count: " + iter_parameters);
+        //fprintf(stdout, "\n");
+        //fprintf(stdout, "This iterations sample count: " + iter_samples);
+        //fprintf(stdout, "\n");
+        //fprintf(stdout, "This iterations BIC: " + iter_bic);
+        //fprintf(stdout, "\n");
+//
+        //lfOut	= csvFilePath + ".optTreePlusRate." + bNames[branchI] + "." + omegaNumber + ".fit";
+        //LIKELIHOOD_FUNCTION_OUTPUT = 7;
+        //fprintf (lfOut, CLEAR_FILE, three_LF);
+        //LIKELIHOOD_FUNCTION_OUTPUT = 2;
+
+        lastRes = res_three_LF[1][0];
+        if (iter_bic == last_bic)
+        {
+            bic_run_count = bic_run_count + 1;
+        }
+        if ((iter_bic > last_bic) || (bic_run_count > 2))
+        {
+            //fprintf(stdout, "Done with this branch...\n");
+            better_bic = 0;
+        }
+        else
+        {
+            tempOmegaNumber = tempOmegaNumber + 1;
+        }
+        last_bic = iter_bic;
+    }
+    // fprintf(stdout, "\n");
+    best_models[branchI] = tempOmegaNumber;
     return tempOmegaNumber;
 }
+*/
 
+//------------------------------------------------------------------------------------------------------------------------
+function sendAnMPIjob(lfID)
+{
+    for (mpiNodeI = 0; mpiNodeI < MPI_NODE_COUNT-1; mpiNodeI += 1)
+    {
+        if (_MPI_NODE_STATUS[mpiNodeI] < 0)
+        {
+            break;
+        }
+    }
+    if (mpiNodeI == MPI_NODE_COUNT-1)
+    {
+        mpiNodeI = receiveAnMPIjob ();
+    }
+    _MPI_NODE_STATUS[mpiNodeI] = branchNumber;
+    MPISend(mpiNodeI + 1, lfID);
+    return 0;
+}
+
+/*
 //------------------------------------------------------------------------------------------------------------------------
 function sendAnMPIjob (lfID, nucCF, branchName, branchNumber, defaultModel, modelList, algn_len, replace_tree, origRes, orig_bic)
 {
@@ -458,19 +589,58 @@ function sendAnMPIjob (lfID, nucCF, branchName, branchNumber, defaultModel, mode
     MPISend(mpiNodeI + 1, mpiCommandString);
     return 0;
 }
+*/
 
 //------------------------------------------------------------------------------------------------------------------------
-function receiveAnMPIjob ()
+// XXX make sure doneID is the correct node number
+function receiveAnMPIjob()
 {
-    MPIReceive (-1, fromNode, result);
+    // GET RESULTS
+    MPIReceive (-1, fromNode, res_three_LF);
     fromNode += (-1);
     doneID = _MPI_NODE_STATUS[fromNode]-1;
     _MPI_NODE_STATUS[fromNode] = -1;
-    //tbr = {};
-    //tbr[0] = doneID;
-    //tbr[1] = result;
-    best_models[doneID] = result;
+
+    processResults(res_three_LF, doneID);
+
     return fromNode;
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+// XXX make sure that LFID is in the correct form (string etc) when passed to
+// Optimize
+function OptBranch(LFID, nodeI)
+{
+    // GET RESULTS
+    //MPIReceive (-1, fromNode, res_three_LF);
+    //fromNode += (-1);
+    //doneID = _MPI_NODE_STATUS[fromNode]-1;
+    //_MPI_NODE_STATUS[fromNode] = -1;
+
+    Optimize(res_three_LF, LFID);
+    processResults(res_three_LF, nodeI);
+
+    return fromNode;
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+function procesResults(res_LF, nodeID)
+{
+    // PROCESS RESULTS
+    thisRes = res_LF[1][0] - 1.0;
+    this_likelihood = res_LF[1][0];
+    this_parameters = res_LF[1][1];
+    this_bic = calcBIC(this_likelihood, this_parameters, algn_len); // algn_len is a global variable
+    if (last_bics[doneID] >= this_bic) // last_bics is a global variable
+    {
+        done_branches[doneID] = 1; // done_branches is a global variable
+    }
+    else
+    {
+        last_bics[doneID] = this_bic;
+        best_models[doneID] = best_models[doneID] + 1; // best_models is a global variable
+    }
+    return thisRes;
 }
 
 //------------------------------------------------------------------------------------------------------------------------

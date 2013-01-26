@@ -251,6 +251,52 @@ function assignModels2Branches(lfID, nucCF, defaultModel, branch_names, model_as
     ExecuteCommands ("GetString(lfInfoAA, " + lfID + ", -1)");
     lfTree = lfInfoAA["Trees"];
     lfTreeID = lfTree[0];
+    lfdsf = lfInfoAA["Datafilters"];
+    lfdsfID = lfdsf[0];
+    ExecuteCommands ("HarvestFrequencies (lfnuc3," + lfdsfID + ", 3, 1, 1)");
+    lfnucCF = nucCF;
+    lfbaseFreqs = lfInfoAA["Base frequencies"];
+    lfbaseFreqsID = lfbaseFreqs[0];
+    //lfModel = lfInfoAA["Models"];
+    //lfModelID = lfModel[0];
+
+    // Check to make sure all of the models exist. If not, create them and
+    // add them to model_list. This should eventually be abstracted into a
+    // function
+    for (mI = 0; mI < Abs(model_assignments); mI = mI + 1)
+    {
+        if (model_list[model_assignments[mI]] == 0)
+        {
+            for (matrixI = 1; matrixI <= model_assignments[mI]; matrixI = matrixI + 1)
+            {
+                ExecuteCommands("PopulateModelMatrix(\"MGMatrix" + matrixI + "\", lfnucCF, \"t\", \"omega" + matrixI + "\", \"\");");
+            }
+            matrixString = "";
+            for (paramI = 1; paramI <= model_assignments[mI]; paramI = paramI + 1)
+            {
+                if (paramI > 1)
+                {
+                    matrixString = matrixString + "+";
+                }
+                // We need the matrix from the rate class
+                matrixString = matrixString + "Exp(MGMatrix" + paramI + ")";
+                // However we don't store the proportion for the last rate class (DOF = # rate classes - 1)
+                if (paramI != model_assignments[mI])
+                {
+                    matrixString = matrixString + "*Paux" + paramI;
+                }
+                // As we don't store the proportion for the last rate class, we need to be able to determine
+                // that proportion from the other proportions. This relationship is used below:
+                for (prevParamI = paramI - 1; prevParamI > 0; prevParamI = prevParamI - 1)
+                {
+                    matrixString = matrixString + "*(1-Paux" + prevParamI + ")";
+                }
+            }
+            ExecuteCommands ("Model BSREL" + model_assignments[mI] + " = (matrixString, " + lfbaseFreqsID + ", EXPLICIT_FORM_MATRIX_EXPONENTIAL);");
+            modelList[nextOmega] = "BSREL" + model_assignments[mI];
+        }
+    }
+
 
     temp_omegas = {};
     for (mI = 0; mI < Abs(model_assignments); mI = mI + 1)
