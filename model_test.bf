@@ -119,6 +119,9 @@ orig_likelihood = res_three_LF[1][0];
 orig_parameters = res_three_LF[1][1];
 orig_bic = calcBIC(orig_likelihood, orig_parameters, iter_samples);
 
+//fprintf(stdout, "\nThe MGL BIC is " + orig_bic + "\n");
+
+model_list = {};
 last_bics = {};
 best_models = {};
 done_branches = {};
@@ -150,15 +153,17 @@ while (branchesToOptimize > 0)
                 working_models[wmI] = 1;
             }
             working_models[launchI] = best_models[launchI] + 1;
-            assignModels2Branches("three_LF", nucCF, "MGL", bNames, working_models, algn_len, model_list); // XXX this function may not have the capacity to create models and add them to the model list yet.
+            assignModels2Branches("three_LF", nucCF, "MGL", bNames, working_models, algn_len, model_list);
             if (mpi_mode)
             {
                 // Fork:
-                sendAnMPIjob("three_LF");
+                // XXX this likely does not correctly keep track of the
+                // branch number
+                result = sendAnMPIjob("three_LF", launchI);
             }
             else
             {
-                OptBranch("three_LF", launchI);
+                result = OptBranch("three_LF", launchI);
             }
         }
     }
@@ -538,7 +543,7 @@ function optimizeBranchOmegas(lfID, nucCF, branchName, branchNumber, defaultMode
 */
 
 //------------------------------------------------------------------------------------------------------------------------
-function sendAnMPIjob(lfID)
+function sendAnMPIjob(lfID, branchNumber)
 {
     for (mpiNodeI = 0; mpiNodeI < MPI_NODE_COUNT-1; mpiNodeI += 1)
     {
@@ -601,13 +606,12 @@ function receiveAnMPIjob()
     doneID = _MPI_NODE_STATUS[fromNode]-1;
     _MPI_NODE_STATUS[fromNode] = -1;
 
-    processResults(res_three_LF, doneID);
+    return processResults(res_three_LF, doneID);
 
-    return fromNode;
+    //return fromNode;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
-// XXX make sure that LFID is in the correct form (string etc) when passed to
 // Optimize
 function OptBranch(LFID, nodeI)
 {
@@ -618,27 +622,28 @@ function OptBranch(LFID, nodeI)
     //_MPI_NODE_STATUS[fromNode] = -1;
 
     Optimize(res_three_LF, LFID);
-    processResults(res_three_LF, nodeI);
-
-    return fromNode;
+    //fprintf(stdout, "\n\n\nDone Optimizing!\n\n\n");
+    //fprintf(stdout, res_three_LF);
+    //fprintf(stdout, "\n\n\n");
+    return processResults(res_three_LF, nodeI);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
-function procesResults(res_LF, nodeID)
+function processResults(res_LF, nodeID)
 {
     // PROCESS RESULTS
     thisRes = res_LF[1][0] - 1.0;
     this_likelihood = res_LF[1][0];
     this_parameters = res_LF[1][1];
     this_bic = calcBIC(this_likelihood, this_parameters, algn_len); // algn_len is a global variable
-    if (last_bics[doneID] >= this_bic) // last_bics is a global variable
+    if (last_bics[nodeID] <= this_bic) // last_bics is a global variable
     {
-        done_branches[doneID] = 1; // done_branches is a global variable
+        done_branches[nodeID] = 1; // done_branches is a global variable
     }
     else
     {
-        last_bics[doneID] = this_bic;
-        best_models[doneID] = best_models[doneID] + 1; // best_models is a global variable
+        last_bics[nodeID] = this_bic;
+        best_models[nodeID] = best_models[nodeID] + 1; // best_models is a global variable
     }
     return thisRes;
 }

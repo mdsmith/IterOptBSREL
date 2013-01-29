@@ -243,6 +243,7 @@ function addRate2BranchAdvanced(lfID, nucCF, branchName, defaultModel, modelList
     return 0;
 }
 
+// XXX this initialization regimen is producing subpar results
 function assignModels2Branches(lfID, nucCF, defaultModel, branch_names, model_assignments, algn_len, model_list)
 {
 
@@ -262,9 +263,12 @@ function assignModels2Branches(lfID, nucCF, defaultModel, branch_names, model_as
 
     // Check to make sure all of the models exist. If not, create them and
     // add them to model_list. This should eventually be abstracted into a
-    // function
+    // separate function
     for (mI = 0; mI < Abs(model_assignments); mI = mI + 1)
     {
+        //fprintf(stdout, model_list);
+        //fprintf(stdout, "\n");
+        //fprintf(stdout, "Model list model: " + model_assignments[mI] + "\n");
         if (model_list[model_assignments[mI]] == 0)
         {
             for (matrixI = 1; matrixI <= model_assignments[mI]; matrixI = matrixI + 1)
@@ -298,22 +302,25 @@ function assignModels2Branches(lfID, nucCF, defaultModel, branch_names, model_as
     }
 
 
-    temp_omegas = {};
-    for (mI = 0; mI < Abs(model_assignments); mI = mI + 1)
+    if (Abs(temp_omegas) == 0)
     {
-        temp_omegas[mI] = 10;
-        srate = Eval (lfTreeID + "." + branch_names[mI] + ".syn");
-        nsrate = Eval (lfTreeID + "." + branch_names[mI] + ".nonsyn");
-        //fprintf(stdout, "" + nsrate + ", " + srate + "\n");
-        if (srate > 0)
+        temp_omegas = {};
+        for (mI = 0; mI < Abs(model_assignments); mI = mI + 1)
         {
-            temp_omegas[mI] = Min (10, nsrate/srate);
+            temp_omegas[mI] = 10;
+            srate = Eval (lfTreeID + "." + branch_names[mI] + ".syn");
+            nsrate = Eval (lfTreeID + "." + branch_names[mI] + ".nonsyn");
+            fprintf(stdout, "" + nsrate + ", " + srate + "\n");
+            if (srate > 0)
+            {
+                temp_omegas[mI] = Min (10, nsrate/srate);
+            }
         }
     }
 
-    //fprintf(stdout, "\nomega results: \n");
-    //fprintf(stdout, temp_omegas);
-    //fprintf(stdout, "\n");
+    fprintf(stdout, "\nomega results: \n");
+    fprintf(stdout, temp_omegas);
+    fprintf(stdout, "\n");
 
     ExecuteCommands ("orig_tree_string = Format(" + lfTreeID + ",1,1)");
     final_tree_string = orig_tree_string;
