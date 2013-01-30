@@ -153,7 +153,11 @@ while (branchesToOptimize > 0)
                 working_models[wmI] = 1;
             }
             working_models[launchI] = best_models[launchI] + 1;
-            assignModels2Branches("three_LF", nucCF, "MGL", bNames, working_models, algn_len, model_list);
+            //assignModels2Branches("three_LF", nucCF, "MGL", bNames, working_models, algn_len, model_list);
+            fprintf(stdout, "\n");
+            fprintf(stdout, working_models);
+            fprintf(stdout, "\n");
+            assignModels2Branches("three_LF", nucCF, "BSREL1", bNames, working_models, algn_len, model_list);
             if (mpi_mode)
             {
                 // Fork:
@@ -621,6 +625,7 @@ function OptBranch(LFID, nodeI)
     //doneID = _MPI_NODE_STATUS[fromNode]-1;
     //_MPI_NODE_STATUS[fromNode] = -1;
 
+    VERBOSITY_LEVEL = 10;
     Optimize(res_three_LF, LFID);
     //fprintf(stdout, "\n\n\nDone Optimizing!\n\n\n");
     //fprintf(stdout, res_three_LF);
@@ -636,6 +641,8 @@ function processResults(res_LF, nodeID)
     this_likelihood = res_LF[1][0];
     this_parameters = res_LF[1][1];
     this_bic = calcBIC(this_likelihood, this_parameters, algn_len); // algn_len is a global variable
+    fprintf(stdout, "\nThis likelihood: " + this_likelihood + " parameter count: " + this_parameters + "\n");
+    fprintf(stdout, "This BIC: " + this_bic + " Last bic: " + last_bics[nodeID] + "\n\n");
     if (last_bics[nodeID] <= this_bic) // last_bics is a global variable
     {
         done_branches[nodeID] = 1; // done_branches is a global variable

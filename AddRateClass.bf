@@ -247,7 +247,6 @@ function addRate2BranchAdvanced(lfID, nucCF, branchName, defaultModel, modelList
 function assignModels2Branches(lfID, nucCF, defaultModel, branch_names, model_assignments, algn_len, model_list)
 {
 
-    ExecuteCommands ("UseModel(" + defaultModel + ")");
 
     ExecuteCommands ("GetString(lfInfoAA, " + lfID + ", -1)");
     lfTree = lfInfoAA["Trees"];
@@ -301,7 +300,6 @@ function assignModels2Branches(lfID, nucCF, defaultModel, branch_names, model_as
         }
     }
 
-
     if (Abs(temp_omegas) == 0)
     {
         temp_omegas = {};
@@ -318,9 +316,9 @@ function assignModels2Branches(lfID, nucCF, defaultModel, branch_names, model_as
         }
     }
 
-    fprintf(stdout, "\nomega results: \n");
-    fprintf(stdout, temp_omegas);
-    fprintf(stdout, "\n");
+    //fprintf(stdout, "\nomega results: \n");
+    //fprintf(stdout, temp_omegas);
+    //fprintf(stdout, "\n");
 
     ExecuteCommands ("orig_tree_string = Format(" + lfTreeID + ",1,1)");
     final_tree_string = orig_tree_string;
@@ -336,6 +334,8 @@ function assignModels2Branches(lfID, nucCF, defaultModel, branch_names, model_as
 
     REPLACE_TREE_STRUCTURE = 1;
 
+    ExecuteCommands ("UseModel(" + defaultModel + ")");
+
     ExecuteCommands ("Tree `lfTreeID` = `final_tree_string`");
     ExecuteCommands ("LikelihoodFunction `lfID` = (`lfdsfID`, `lfTreeID`);");
 
@@ -343,7 +343,7 @@ function assignModels2Branches(lfID, nucCF, defaultModel, branch_names, model_as
     {
         if (model_assignments[mod_assgn_I] > 0)
         {
-            for (omegaI = 1; omegaI <= model_assignments[omegaI]; omegaI = omegaI + 1)
+            for (omegaI = 1; omegaI <= model_assignments[mod_assgn_I]; omegaI = omegaI + 1)
             {
                 ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".omega" + omegaI + " = " + (temp_omegas[mod_assgn_I] * (2^omegaI)) + ";");
                 if (omegaI != model_assignments[mod_assgn_I])
