@@ -163,11 +163,14 @@ while (branchesToOptimize > 0)
                 // Fork:
                 // XXX this likely does not correctly keep track of the
                 // branch number
-                result = sendAnMPIjob("three_LF", launchI);
+                fprintf(stdout, "\nLanuching branch: ");
+                fprintf(stdout, launchI);
+                fprintf(stdout, "\n");
+                sendAnMPIjob(launchI);
             }
             else
             {
-                result = OptBranch("three_LF", launchI);
+                OptBranch(launchI);
             }
         }
     }
@@ -311,7 +314,7 @@ for (bI = 0; bI < totalBranchCount; bI = bI + 1)
 // not exist, in fact the entire model list may be empty on the host node.
 assignModels2Branches("three_LF", nucCF, "BSREL1", bNames, best_models, algn_len, model_list);
 
-VERBOSITY_LEVEL = 10; // 10 prints EVERYTHING
+//VERBOSITY_LEVEL = 10; // 10 prints EVERYTHING
 
 Optimize (res_three_LF,three_LF);
 fprintf(stdout, "\n");
@@ -547,7 +550,7 @@ function optimizeBranchOmegas(lfID, nucCF, branchName, branchNumber, defaultMode
 */
 
 //------------------------------------------------------------------------------------------------------------------------
-function sendAnMPIjob(lfID, branchNumber)
+function sendAnMPIjob(branchNumber)
 {
     for (mpiNodeI = 0; mpiNodeI < MPI_NODE_COUNT-1; mpiNodeI += 1)
     {
@@ -560,8 +563,9 @@ function sendAnMPIjob(lfID, branchNumber)
     {
         mpiNodeI = receiveAnMPIjob ();
     }
+    fprintf(stdout, "\n sending branch number " + branchNumber + " to node number " + mpiNodeI + "plus one\n");
     _MPI_NODE_STATUS[mpiNodeI] = branchNumber;
-    MPISend(mpiNodeI + 1, lfID);
+    MPISend(mpiNodeI + 1, three_LF);
     return 0;
 }
 
@@ -605,19 +609,29 @@ function sendAnMPIjob (lfID, nucCF, branchName, branchNumber, defaultModel, mode
 function receiveAnMPIjob()
 {
     // GET RESULTS
-    MPIReceive (-1, fromNode, res_three_LF);
+    MPIReceive (-1, fromNode, res_string);
     fromNode += (-1);
-    doneID = _MPI_NODE_STATUS[fromNode]-1;
+    doneID = _MPI_NODE_STATUS[fromNode];
     _MPI_NODE_STATUS[fromNode] = -1;
+    ExecuteCommands(res_string);
+    res_three_LF = three_LF_MLES;
 
-    return processResults(res_three_LF, doneID);
 
-    //return fromNode;
+    //GetString  (lfInfo,three_LF,-1);
+    //return_AVL = Eval(res_string);
+    fprintf(stdout, "\nJob received from " + fromNode + " saving to branch number " + doneID + "\n");
+    //fprintf(stdout, "\nPost: \n");
+    //fprintf(stdout, three_LF_MLES[1][0]);
+    //fprintf(stdout, "\n");
+
+    processResults(res_three_LF, doneID);
+
+    return fromNode;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 // Optimize
-function OptBranch(LFID, nodeI)
+function OptBranch(nodeI)
 {
     // GET RESULTS
     //MPIReceive (-1, fromNode, res_three_LF);
@@ -625,19 +639,20 @@ function OptBranch(LFID, nodeI)
     //doneID = _MPI_NODE_STATUS[fromNode]-1;
     //_MPI_NODE_STATUS[fromNode] = -1;
 
-    VERBOSITY_LEVEL = 10;
-    Optimize(res_three_LF, LFID);
+    //VERBOSITY_LEVEL = 10;
+    Optimize(res_three_LF, three_LF);
     //fprintf(stdout, "\n\n\nDone Optimizing!\n\n\n");
     //fprintf(stdout, res_three_LF);
     //fprintf(stdout, "\n\n\n");
-    return processResults(res_three_LF, nodeI);
+    processResults(res_three_LF, nodeI);
+    return 0;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 function processResults(res_LF, nodeID)
 {
     // PROCESS RESULTS
-    thisRes = res_LF[1][0] - 1.0;
+    thisRes = res_LF[1][0];
     this_likelihood = res_LF[1][0];
     this_parameters = res_LF[1][1];
     this_bic = calcBIC(this_likelihood, this_parameters, algn_len); // algn_len is a global variable
