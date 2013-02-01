@@ -1,5 +1,8 @@
 LoadFunctionLibrary("DistributionFunctions.bf");
 
+/* The following two functions are no longer used in the MPI version,
+ * but still function as expected
+ */
 function addRate2Branch(lfID, nucCF, branchName, defaultModel, modelList, algn_len, replace_tree)
 {
     model_assignments = {};
@@ -177,8 +180,6 @@ function addRate2BranchAdvanced(lfID, nucCF, branchName, defaultModel, modelList
 
     // But it would be nice to have a BSREL1.
     // Testing
-    /*
-    */
     if (modelList[1] == 0)
     {
         // All we need is a matrix string
@@ -243,11 +244,8 @@ function addRate2BranchAdvanced(lfID, nucCF, branchName, defaultModel, modelList
     return 0;
 }
 
-// XXX this initialization regimen is producing subpar results
 function assignModels2Branches(lfID, nucCF, defaultModel, branch_names, model_assignments, algn_len, model_list)
 {
-
-
     ExecuteCommands ("GetString(lfInfoAA, " + lfID + ", -1)");
     lfTree = lfInfoAA["Trees"];
     lfTreeID = lfTree[0];
@@ -257,17 +255,12 @@ function assignModels2Branches(lfID, nucCF, defaultModel, branch_names, model_as
     lfnucCF = nucCF;
     lfbaseFreqs = lfInfoAA["Base frequencies"];
     lfbaseFreqsID = lfbaseFreqs[0];
-    //lfModel = lfInfoAA["Models"];
-    //lfModelID = lfModel[0];
 
     // Check to make sure all of the models exist. If not, create them and
     // add them to model_list. This should eventually be abstracted into a
     // separate function
     for (mI = 0; mI < Abs(model_assignments); mI = mI + 1)
     {
-        //fprintf(stdout, model_list);
-        //fprintf(stdout, "\n");
-        //fprintf(stdout, "Model list model: " + model_assignments[mI] + "\n");
         if (model_list[model_assignments[mI]] == 0)
         {
             for (matrixI = 1; matrixI <= model_assignments[mI]; matrixI = matrixI + 1)
@@ -348,7 +341,6 @@ function assignModels2Branches(lfID, nucCF, defaultModel, branch_names, model_as
                 ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".omega" + omegaI + " = " + (temp_omegas[mod_assgn_I] * (2^omegaI)) + ";");
                 if (omegaI != model_assignments[mod_assgn_I])
                 {
-                    //fprintf(stdout, "\nomega: " + omegaI + " opt: " + model_assignments[mod_assgn_I] + " branch: " + branch_names[mod_assgn_I] + "\n");
                     ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".Paux" + omegaI + " = " + ((algn_len - 1)/algn_len) + ";");
                     ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".Paux" + omegaI + " :< 1;");
                 }

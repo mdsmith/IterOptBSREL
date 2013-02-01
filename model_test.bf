@@ -23,19 +23,26 @@ else
 }
 // ---------- MPI stuff
 
+// This is the list of available models
+// 0 = MGL
+// 1 = BSREL1
+// 2 = BSREL2 etc
+// The list is populated as the models are created.
 modelList = {};
 
+// Input from the file
 DataSet 			ds 				= ReadDataFile(PROMPT_FOR_FILE);
 DataSetFilter 		dsf 			= CreateFilter(ds,3,"","",GeneticCodeExclusions);
 
 GetInformation(dsf_seq_array, dsf);
-taxa_count = Columns(dsf_seq_array);
+//taxa_count = Columns(dsf_seq_array); // never used
 algn_len = Abs(dsf_seq_array[0]);
 
 HarvestFrequencies	(nuc3, dsf, 3, 1, 1);
 
 nucCF						= CF3x4	(nuc3, GeneticCodeExclusions);
 
+// Make the model matrix for MGL
 PopulateModelMatrix			  ("MGMatrixLocal",  nucCF, "syn", "", "nonsyn");
 
 codon3x4					= BuildCodonFrequencies (nucCF);
@@ -57,6 +64,7 @@ totalBranchCount			 = BranchCount(givenTree) + TipCount (givenTree);
 pValueByBranch				  = {totalBranchCount,10};
 bNames						  = BranchName (givenTree, -1);
 
+// Create the proper MGL parameters on the branches of the tree
 for (k = 0; k < totalBranchCount; k = k+1)
 {
 	srate  = Eval ("givenTree." + bNames[k] + ".syn");
@@ -84,24 +92,27 @@ VERBOSITY_LEVEL               = 1;
 
 LikelihoodFunction three_LF  = (dsf,mixtureTree);
 
-//-------------------------------------------------------------------------
-// So at this point we have the MG94 model. Now we will go through the
-// branches and add&optimize rate classes.
-
+// Print the MGL .fit file
 lfOut	= csvFilePath + ".tree.fit";
 LIKELIHOOD_FUNCTION_OUTPUT = 7;
 fprintf (lfOut, CLEAR_FILE, three_LF);
 LIKELIHOOD_FUNCTION_OUTPUT = 2;
 
+// Optimize the MGL likelihood function
 Optimize (res_three_LF,three_LF);
 fprintf(stdout, "\n");
 
+// Print the MGL .fit file post optimization
 lfOut	= csvFilePath + ".optTree.fit";
 LIKELIHOOD_FUNCTION_OUTPUT = 7;
 fprintf (lfOut, CLEAR_FILE, three_LF);
 LIKELIHOOD_FUNCTION_OUTPUT = 2;
 
+//-------------------------------------------------------------------------
+// LOCAL DONE. Starting the parallel iterative optimizer
+//-------------------------------------------------------------------------
 
+// Setup variables to be filled at each iteration
 iter_likelihood = 0; // Determined after Optimize
 iter_samples = algn_len;
 iter_parameters = 0; // Known, but can be determined after Optimize
@@ -109,30 +120,40 @@ init_parameters = 0;
 
 GetInformation(dsf_seq_array, dsf);
 
-Export(three_LF_bak, three_LF);
+//Export(three_LF_bak, three_LF); // not used...
 
+// Calculate the results from the MGL fitting, to see if we can do better
 origRes = res_three_LF[1][0] - 1.0;
 orig_likelihood = res_three_LF[1][0];
 orig_parameters = res_three_LF[1][1];
 orig_bic = calcBIC(orig_likelihood, orig_parameters, iter_samples);
 
+// In the MPI version of this code we need to keep track of the results from
+// all branches at once, so instead of variables to store results from one
+// omega to the next, we'll use arrays (ultimately of length =
+// totalBranchcount)
 model_list = {};
 last_bics = {};
 best_models = {};
 done_branches = {};
 working_models = {};
 
+// Initialize these results to reasonable values
 for (initI = 0; initI < totalBranchCount; initI = initI + 1)
 {
-    best_models[initI] = 1;
-    done_branches[initI] = 0;
-    working_models[initI] = 1;
-    last_bics[initI] = orig_bic;
+    best_models[initI] = 1; // So far the optimal omega # = 1 for all branches
+    done_branches[initI] = 0; // none of the branches are done yet
+    working_models[initI] = 1;  // This will be filled at each step, so these
+                                // don't matter as much
+    last_bics[initI] = orig_bic;// The first comparison for each additional
+                                //omega will be to a version with one omega
+                                //per branch, thus MGL's BIC
 }
 
 
 branchesToOptimize = totalBranchCount;
 
+// OPTIMIZE all branches:
 while (branchesToOptimize > 0)
 {
     for (launchI = 0; launchI < totalBranchCount; launchI = launchI + 1)
@@ -147,6 +168,7 @@ while (branchesToOptimize > 0)
             {
                 working_models[wmI] = 1;
             }
+            // One more omega than previously tried!
             working_models[launchI] = best_models[launchI] + 1;
             assignModels2Branches("three_LF", nucCF, "BSREL1", bNames, working_models, algn_len, model_list);
             if (mpi_mode)
@@ -156,6 +178,7 @@ while (branchesToOptimize > 0)
             }
             else
             {
+                // Don't fork, optimize:
                 OptBranch(launchI);
             }
         }
@@ -187,10 +210,12 @@ while (branchesToOptimize > 0)
     }
 }
 
+// DONE: Optimal omegas are now in best_models
 fprintf(stdout, "\n");
 fprintf(stdout, best_models);
 fprintf(stdout, "\n");
 
+// Apply best_models to a new likelihood function
 assignModels2Branches("three_LF", nucCF, "BSREL1", bNames, best_models, algn_len, model_list);
 
 //VERBOSITY_LEVEL = 10; // 10 prints EVERYTHING
@@ -198,6 +223,7 @@ assignModels2Branches("three_LF", nucCF, "BSREL1", bNames, best_models, algn_len
 Optimize (res_three_LF,three_LF);
 fprintf(stdout, "\n");
 
+// Get results from the optimize
 iter_likelihood = res_three_LF[1][0];
 iter_parameters = res_three_LF[1][1];
 
@@ -281,6 +307,7 @@ psTree = PSTreeString (T,"STRING_SUPPLIED_LENGTHS",{{400,height}});
 treePath = csvFilePath + ".ps";
 fprintf (treePath, CLEAR_FILE, psTree);
 */
+// PRINT out the calculated branch lengths
 for (bI = 0; bI < totalBranchCount; bI = bI + 1)
 {
     calculateBranchLengthByName(modelList, best_models, "mixtureTree", bNames[bI], bI);
@@ -291,6 +318,7 @@ return pValueByBranch;
 //------------------------------------------------------------------------------------------------------------------------
 function sendAnMPIjob(branchNumber)
 {
+    // Find the next open node
     for (mpiNodeI = 0; mpiNodeI < MPI_NODE_COUNT-1; mpiNodeI += 1)
     {
         if (_MPI_NODE_STATUS[mpiNodeI] < 0)
@@ -298,6 +326,7 @@ function sendAnMPIjob(branchNumber)
             break;
         }
     }
+    // None open, wait on one to return
     if (mpiNodeI == MPI_NODE_COUNT-1)
     {
         mpiNodeI = receiveAnMPIjob ();
@@ -316,8 +345,12 @@ function receiveAnMPIjob()
     fromNode += (-1);
     doneID = _MPI_NODE_STATUS[fromNode];
     _MPI_NODE_STATUS[fromNode] = -1;
+    // reconstitute likelihood function
     ExecuteCommands(res_string);
-    res_three_LF = three_LF_MLES;
+    // ******** HIDDEN GLOBAL VARIABLE INSERTED INTO THE NAMESPACE BY HYPHY ********
+    res_three_LF = three_LF_MLES;   // it will be your likelihood function
+                                    // name followed by _MLES
+    // ******** HIDDEN GLOBAL VARIABLE INSERTED INTO THE NAMESPACE BY HYPHY ********
     //fprintf(stdout, "\nJob received from " + fromNode + " saving to branch number " + doneID + "\n");
 
     processResults(res_three_LF, doneID);
@@ -335,7 +368,6 @@ function OptBranch(nodeI)
 //------------------------------------------------------------------------------------------------------------------------
 function processResults(res_LF, nodeID)
 {
-    // PROCESS RESULTS
     thisRes = res_LF[1][0];
     this_likelihood = res_LF[1][0];
     this_parameters = res_LF[1][1];
