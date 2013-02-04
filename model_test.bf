@@ -150,6 +150,27 @@ for (initI = 0; initI < totalBranchCount; initI = initI + 1)
                                 //per branch, thus MGL's BIC
 }
 
+VERBOSITY_LEVEL = 10;
+
+// XXX Testing interlude: is the comparison to MGL what is screwing us up?
+assignModels2Branches("three_LF", nucCF, "BSREL1", bNames, working_models, algn_len, model_list);
+// Optimize the MGL likelihood function
+Optimize (res_three_LF,three_LF);
+fprintf(stdout, "\n");
+
+// Print the MGL .fit file post optimization
+lfOut	= csvFilePath + ".BSREL1Tree.fit";
+LIKELIHOOD_FUNCTION_OUTPUT = 7;
+fprintf (lfOut, CLEAR_FILE, three_LF);
+LIKELIHOOD_FUNCTION_OUTPUT = 2;
+
+origRes = res_three_LF[1][0] - 1.0;
+orig_likelihood = res_three_LF[1][0];
+orig_parameters = res_three_LF[1][1];
+orig_bic = calcBIC(orig_likelihood, orig_parameters, iter_samples);
+fprintf(stdout, "\nBSREL1 likelihood: " + orig_likelihood + " BIC: " + orig_bic + "\n\n");
+// XXX end testing interlude
+
 
 branchesToOptimize = totalBranchCount;
 
@@ -170,6 +191,9 @@ while (branchesToOptimize > 0)
             }
             // One more omega than previously tried!
             working_models[launchI] = best_models[launchI] + 1;
+            fprintf(stdout, "\n");
+            fprintf(stdout, working_models);
+            fprintf(stdout, "\n");
             assignModels2Branches("three_LF", nucCF, "BSREL1", bNames, working_models, algn_len, model_list);
             if (mpi_mode)
             {
@@ -383,6 +407,10 @@ function processResults(res_LF, nodeID)
         last_bics[nodeID] = this_bic;
         best_models[nodeID] = best_models[nodeID] + 1; // best_models is a global variable
     }
+    lfOut	= csvFilePath + ".branch" + nodeID + ".omega" + best_models[nodeID] + ".fit";
+    LIKELIHOOD_FUNCTION_OUTPUT = 7;
+    fprintf (lfOut, CLEAR_FILE, three_LF);
+    LIKELIHOOD_FUNCTION_OUTPUT = 2;
     return thisRes;
 }
 
