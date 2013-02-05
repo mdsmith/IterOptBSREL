@@ -150,7 +150,7 @@ for (initI = 0; initI < totalBranchCount; initI = initI + 1)
                                 //per branch, thus MGL's BIC
 }
 
-VERBOSITY_LEVEL = 10;
+VERBOSITY_LEVEL = 1;
 
 // XXX Testing interlude: is the comparison to MGL what is screwing us up?
 assignModels2Branches("three_LF", nucCF, "BSREL1", bNames, working_models, algn_len, model_list);
@@ -353,10 +353,14 @@ function sendAnMPIjob(branchNumber)
     // None open, wait on one to return
     if (mpiNodeI == MPI_NODE_COUNT-1)
     {
+        Export(three_LF_bak, three_LF);
         mpiNodeI = receiveAnMPIjob ();
+        ExecuteCommands(three_LF_bak);
     }
     fprintf(stdout, "\n sending branch number " + branchNumber + " to node number " + mpiNodeI + "plus one\n");
     _MPI_NODE_STATUS[mpiNodeI] = branchNumber;
+    // XXX if you've reconstituted three_LF in a receive call before sending
+    // you'll be sending an old three_LF
     MPISend(mpiNodeI + 1, three_LF);
     return 0;
 }
@@ -375,8 +379,9 @@ function receiveAnMPIjob()
     res_three_LF = three_LF_MLES;   // it will be your likelihood function
                                     // name followed by _MLES
     // ******** HIDDEN GLOBAL VARIABLE INSERTED INTO THE NAMESPACE BY HYPHY ********
-    //fprintf(stdout, "\nJob received from " + fromNode + " saving to branch number " + doneID + "\n");
-
+    fprintf(stdout, "\nJob received from " + fromNode + " saving to branch number " + doneID + "\n");
+    //fprintf(stdout, res_three_LF);
+    //fprintf(stdout, "\n");
     processResults(res_three_LF, doneID);
     return fromNode;
 }
@@ -428,7 +433,8 @@ function calculateBranchLengthByName (modelList, bestModels, treeName, branchNam
     models = {};
     for (mI = 1; mI <= bestModels[branchNumber]; mI = mI + 1)
     {
-        ExecuteCommands ("Model M" + mI + " = (MGMatrix" + 1 + ", codon3x4, 0)");
+        //ExecuteCommands ("Model M" + mI + " = (MGMatrix" + 1 + ", codon3x4, 0)");
+        ExecuteCommands ("Model M" + mI + " = (MGMatrix" + mI + ", codon3x4, 0)");
         models[mI] = "M" + mI;
     }
 
@@ -476,7 +482,9 @@ function calculateBranchLengthByName (modelList, bestModels, treeName, branchNam
             pauxs[oI] = Eval("`treeName`.`branchName`.Paux" + oI);
         }
     }
-    //evalstring = evalstring + ")/" + bestModels[branchNumber];
+    // You divide the estimated length by three because canonical branch
+    // length calculations use the nucleotide as the unit of evolution. We're
+    // using the codon here.
     evalstring = evalstring + ")/3";
 
 
