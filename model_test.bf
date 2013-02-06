@@ -1,4 +1,5 @@
 VERBOSITY_LEVEL				 = 0;
+FAST_MODE = 1;
 
 skipCodeSelectionStep 		= 0;
 LoadFunctionLibrary("chooseGeneticCode");
@@ -137,6 +138,8 @@ last_bics = {};
 best_models = {};
 done_branches = {};
 working_models = {};
+fixed_branches = {};
+mgl_ts = {};
 
 // Initialize these results to reasonable values
 for (initI = 0; initI < totalBranchCount; initI = initI + 1)
@@ -148,12 +151,13 @@ for (initI = 0; initI < totalBranchCount; initI = initI + 1)
     last_bics[initI] = orig_bic;// The first comparison for each additional
                                 //omega will be to a version with one omega
                                 //per branch, thus MGL's BIC
+    fixed_branches[initI] = 1;
 }
 
 VERBOSITY_LEVEL = 1;
 
 // XXX Testing interlude: is the comparison to MGL what is screwing us up?
-assignModels2Branches("three_LF", nucCF, "BSREL1", bNames, working_models, algn_len, model_list);
+assignModels2Branches("three_LF", nucCF, "BSREL1", bNames, working_models, algn_len, model_list, null);
 // Optimize the MGL likelihood function
 Optimize (res_three_LF,three_LF);
 fprintf(stdout, "\n");
@@ -171,6 +175,16 @@ orig_bic = calcBIC(orig_likelihood, orig_parameters, iter_samples);
 fprintf(stdout, "\nBSREL1 likelihood: " + orig_likelihood + " BIC: " + orig_bic + "\n\n");
 // XXX end testing interlude
 
+for (initI = 0; initI < totalBranchCount; initI = initI + 1)
+{
+    ExecuteCommands("mgl_ts[" + initI + "] = mixtureTree." + bNames[initI] + ".t;");
+    //ExecuteCommands("fprintf(stdout, mixtureTree." + bNames[initI] + ".t);");
+    //fprintf(stdout, mgl_ts[initI]);
+    //fprintf(stdout, "\n");
+}
+fprintf(stdout, "\nT results from BSREL1\n");
+fprintf(stdout, mgl_ts);
+fprintf(stdout, "\n");
 
 branchesToOptimize = totalBranchCount;
 
@@ -194,7 +208,16 @@ while (branchesToOptimize > 0)
             fprintf(stdout, "\n");
             fprintf(stdout, working_models);
             fprintf(stdout, "\n");
-            assignModels2Branches("three_LF", nucCF, "BSREL1", bNames, working_models, algn_len, model_list);
+            if (FAST_MODE == 1)
+            {
+                fixed_branches[launchI] = 0;
+                assignModels2Branches("three_LF", nucCF, "BSREL1", bNames, working_models, algn_len, model_list, fixed_branches);
+                fixed_branches[launchI] = 1;
+            }
+            else
+            {
+                assignModels2Branches("three_LF", nucCF, "BSREL1", bNames, working_models, algn_len, model_list, null);
+            }
             if (mpi_mode)
             {
                 // Fork:
@@ -240,7 +263,7 @@ fprintf(stdout, best_models);
 fprintf(stdout, "\n");
 
 // Apply best_models to a new likelihood function
-assignModels2Branches("three_LF", nucCF, "BSREL1", bNames, best_models, algn_len, model_list);
+assignModels2Branches("three_LF", nucCF, "BSREL1", bNames, best_models, algn_len, model_list, null);
 
 //VERBOSITY_LEVEL = 10; // 10 prints EVERYTHING
 
@@ -331,11 +354,27 @@ psTree = PSTreeString (T,"STRING_SUPPLIED_LENGTHS",{{400,height}});
 treePath = csvFilePath + ".ps";
 fprintf (treePath, CLEAR_FILE, psTree);
 */
+branchLengths = {};
 // PRINT out the calculated branch lengths
 for (bI = 0; bI < totalBranchCount; bI = bI + 1)
 {
-    calculateBranchLengthByName(modelList, best_models, "mixtureTree", bNames[bI], bI);
+    calculateBranchLengthByName(modelList, best_models, "mixtureTree", bNames[bI], bI, "branchLengths");
 }
+//fprintf(stdout, "\nBranch lengths:\n");
+//fprintf(stdout, branchLengths);
+//fprintf(stdout, "\n");
+ExecuteCommands ("final_tree_string = Format(" + lfTreeID + ",1,0)");
+//fprintf(stdout, "\nFinal Tree before:\n");
+//fprintf(stdout, final_tree_string);
+//fprintf(stdout, "\n");
+fprintf(stdout, "\nFinal Tree:\n");
+for (bI = 0; bI < Abs(branchLengths); bI = bI + 1)
+{
+    final_tree_string = final_tree_string^{{bNames[bI] + ",", bNames[bI] + ":" + branchLengths[bI] + ","}};
+    final_tree_string = final_tree_string^{{bNames[bI] + ")", bNames[bI] + ":" + branchLengths[bI] + ")"}};
+}
+fprintf(stdout, final_tree_string);
+fprintf(stdout, "\n");
 
 return pValueByBranch;
 
@@ -400,6 +439,10 @@ function processResults(res_LF, nodeID)
     thisRes = res_LF[1][0];
     this_likelihood = res_LF[1][0];
     this_parameters = res_LF[1][1];
+    if (FAST_MODE == 1)
+    {
+        this_parameters = orig_parameters + best_models[nodeID] + 1;
+    }
     this_bic = calcBIC(this_likelihood, this_parameters, algn_len); // algn_len is a global variable
     fprintf(stdout, "\nThis likelihood: " + this_likelihood + " parameter count: " + this_parameters + "\n");
     fprintf(stdout, "This BIC: " + this_bic + " Last bic: " + last_bics[nodeID] + "\n\n");
@@ -420,7 +463,7 @@ function processResults(res_LF, nodeID)
 }
 
 //------------------------------------------------------------------------------------------------------------------------
-function calculateBranchLengthByName (modelList, bestModels, treeName, branchName, branchNumber)
+function calculateBranchLengthByName (modelList, bestModels, treeName, branchName, branchNumber, branchLengthsID)
 {
     branchLength = 0;
 
@@ -499,6 +542,7 @@ function calculateBranchLengthByName (modelList, bestModels, treeName, branchNam
     fprintf(stdout, "\n");
     fprintf(stdout, branchLength);
     fprintf(stdout, "\n");
+    ExecuteCommands(branchLengthsID + "[branchNumber] = " + branchLength + ";");
 
     return branchLength;
 }
