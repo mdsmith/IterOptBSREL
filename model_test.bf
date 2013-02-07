@@ -1,5 +1,5 @@
 VERBOSITY_LEVEL				 = 0;
-FAST_MODE = 1;
+FAST_MODE = 0;
 
 skipCodeSelectionStep 		= 0;
 LoadFunctionLibrary("chooseGeneticCode");
@@ -173,6 +173,14 @@ orig_likelihood = res_three_LF[1][0];
 orig_parameters = res_three_LF[1][1];
 orig_bic = calcBIC(orig_likelihood, orig_parameters, iter_samples);
 fprintf(stdout, "\nBSREL1 likelihood: " + orig_likelihood + " BIC: " + orig_bic + "\n\n");
+fprintf(stdout, "\nBSREL1 branch lengths:\n");
+
+branchLengths = {};
+// PRINT out the calculated branch lengths
+for (bI = 0; bI < totalBranchCount; bI = bI + 1)
+{
+    calculateBranchLengthByName(modelList, best_models, "mixtureTree", bNames[bI], bI, "branchLengths");
+}
 // XXX end testing interlude
 
 for (initI = 0; initI < totalBranchCount; initI = initI + 1)
