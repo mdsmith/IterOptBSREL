@@ -14,14 +14,14 @@ LoadFunctionLibrary("AddRateClass.bf");
 mpi_mode = 0;
 if (MPI_NODE_COUNT > 1)
 {
-    fprintf(stdout, "\nWorking in mpimode...\n");
+    //fprintf(stdout, "\nWorking in mpimode...\n");
     mpi_mode = 1;
     _MPI_NODE_STATUS = {MPI_NODE_COUNT-1,1}["-1"];
 }
-else
-{
-    fprintf(stdout, "\nRunning locally... \n");
-}
+//else
+//{
+    //fprintf(stdout, "\nRunning locally... \n");
+//}
 // ---------- MPI stuff
 
 // This is the list of available models
@@ -94,20 +94,26 @@ VERBOSITY_LEVEL               = 1;
 LikelihoodFunction three_LF  = (dsf,mixtureTree);
 
 // Print the MGL .fit file
-lfOut	= csvFilePath + ".tree.fit";
-LIKELIHOOD_FUNCTION_OUTPUT = 7;
-fprintf (lfOut, CLEAR_FILE, three_LF);
-LIKELIHOOD_FUNCTION_OUTPUT = 2;
+if (VERBOSITY_LEVEL >= 5)
+{
+    lfOut	= csvFilePath + ".tree.fit";
+    LIKELIHOOD_FUNCTION_OUTPUT = 7;
+    fprintf (lfOut, CLEAR_FILE, three_LF);
+    LIKELIHOOD_FUNCTION_OUTPUT = 2;
+}
 
 // Optimize the MGL likelihood function
 Optimize (res_three_LF,three_LF);
-fprintf(stdout, "\n");
 
 // Print the MGL .fit file post optimization
-lfOut	= csvFilePath + ".optTree.fit";
-LIKELIHOOD_FUNCTION_OUTPUT = 7;
-fprintf (lfOut, CLEAR_FILE, three_LF);
-LIKELIHOOD_FUNCTION_OUTPUT = 2;
+if (VERBOSITY_LEVEL >= 5)
+{
+    fprintf(stdout, "\n");
+    lfOut	= csvFilePath + ".optTree.fit";
+    LIKELIHOOD_FUNCTION_OUTPUT = 7;
+    fprintf (lfOut, CLEAR_FILE, three_LF);
+    LIKELIHOOD_FUNCTION_OUTPUT = 2;
+}
 
 //-------------------------------------------------------------------------
 // LOCAL DONE. Starting the parallel iterative optimizer
@@ -160,20 +166,26 @@ VERBOSITY_LEVEL = 1;
 assignModels2Branches("three_LF", nucCF, "BSREL1", bNames, working_models, algn_len, model_list, null);
 // Optimize the MGL likelihood function
 Optimize (res_three_LF,three_LF);
-fprintf(stdout, "\n");
 
 // Print the MGL .fit file post optimization
-lfOut	= csvFilePath + ".BSREL1Tree.fit";
-LIKELIHOOD_FUNCTION_OUTPUT = 7;
-fprintf (lfOut, CLEAR_FILE, three_LF);
-LIKELIHOOD_FUNCTION_OUTPUT = 2;
+if (VERBOSITY_LEVEL >= 5)
+{
+    fprintf(stdout, "\n");
+    lfOut	= csvFilePath + ".BSREL1Tree.fit";
+    LIKELIHOOD_FUNCTION_OUTPUT = 7;
+    fprintf (lfOut, CLEAR_FILE, three_LF);
+    LIKELIHOOD_FUNCTION_OUTPUT = 2;
+}
 
 origRes = res_three_LF[1][0] - 1.0;
 orig_likelihood = res_three_LF[1][0];
 orig_parameters = res_three_LF[1][1];
 orig_bic = calcBIC(orig_likelihood, orig_parameters, iter_samples);
-fprintf(stdout, "\nBSREL1 likelihood: " + orig_likelihood + " BIC: " + orig_bic + "\n\n");
-fprintf(stdout, "\nBSREL1 branch lengths:\n");
+if (VERBOSITY_LEVEL >= 2)
+{
+    fprintf(stdout, "\nBSREL1 likelihood: " + orig_likelihood + " BIC: " + orig_bic + "\n\n");
+    fprintf(stdout, "\nBSREL1 branch lengths:\n");
+}
 
 branchLengths = {};
 // PRINT out the calculated branch lengths
@@ -190,9 +202,12 @@ for (initI = 0; initI < totalBranchCount; initI = initI + 1)
     //fprintf(stdout, mgl_ts[initI]);
     //fprintf(stdout, "\n");
 }
-fprintf(stdout, "\nT results from BSREL1\n");
-fprintf(stdout, mgl_ts);
-fprintf(stdout, "\n");
+if (VERBOSITY_LEVEL >= 2)
+{
+    fprintf(stdout, "\nT results from BSREL1\n");
+    fprintf(stdout, mgl_ts);
+    fprintf(stdout, "\n");
+}
 
 branchesToOptimize = totalBranchCount;
 
@@ -213,9 +228,12 @@ while (branchesToOptimize > 0)
             }
             // One more omega than previously tried!
             working_models[launchI] = best_models[launchI] + 1;
-            fprintf(stdout, "\n");
-            fprintf(stdout, working_models);
-            fprintf(stdout, "\n");
+            if (VERBOSITY_LEVEL >= 2)
+            {
+                fprintf(stdout, "\n");
+                fprintf(stdout, working_models);
+                fprintf(stdout, "\n");
+            }
             if (FAST_MODE == 1)
             {
                 fixed_branches[launchI] = 0;
@@ -266,9 +284,12 @@ while (branchesToOptimize > 0)
 }
 
 // DONE: Optimal omegas are now in best_models
-fprintf(stdout, "\n");
-fprintf(stdout, best_models);
-fprintf(stdout, "\n");
+if (VERBOSITY_LEVEL >= 1)
+{
+    fprintf(stdout, "\nBest models: \n");
+    fprintf(stdout, best_models);
+    fprintf(stdout, "\n");
+}
 
 // Apply best_models to a new likelihood function
 assignModels2Branches("three_LF", nucCF, "BSREL1", bNames, best_models, algn_len, model_list, null);
@@ -283,14 +304,17 @@ iter_likelihood = res_three_LF[1][0];
 iter_parameters = res_three_LF[1][1];
 
 iter_bic = calcBIC(iter_likelihood, iter_parameters, iter_samples);
-fprintf(stdout, "This iterations likelihood: " + iter_likelihood);
-fprintf(stdout, "\n");
-fprintf(stdout, "This iterations parameter count: " + iter_parameters);
-fprintf(stdout, "\n");
-fprintf(stdout, "This iterations sample count: " + iter_samples);
-fprintf(stdout, "\n");
-fprintf(stdout, "This iterations BIC: " + iter_bic);
-fprintf(stdout, "\n");
+if (VERBOSITY_LEVEL >= 2)
+{
+    fprintf(stdout, "This iterations likelihood: " + iter_likelihood);
+    fprintf(stdout, "\n");
+    fprintf(stdout, "This iterations parameter count: " + iter_parameters);
+    fprintf(stdout, "\n");
+    fprintf(stdout, "This iterations sample count: " + iter_samples);
+    fprintf(stdout, "\n");
+    fprintf(stdout, "This iterations BIC: " + iter_bic);
+    fprintf(stdout, "\n");
+}
 
 lfOut	= csvFilePath + ".finalTree.fit";
 LIKELIHOOD_FUNCTION_OUTPUT = 7;
@@ -363,11 +387,12 @@ treePath = csvFilePath + ".ps";
 fprintf (treePath, CLEAR_FILE, psTree);
 */
 branchLengths = {};
+calculateBranchLengths(modelList, best_models, "mixtureTree", bNames, "branchLengths");
 // PRINT out the calculated branch lengths
-for (bI = 0; bI < totalBranchCount; bI = bI + 1)
-{
-    calculateBranchLengthByName(modelList, best_models, "mixtureTree", bNames[bI], bI, "branchLengths");
-}
+//for (bI = 0; bI < totalBranchCount; bI = bI + 1)
+//{
+    //calculateBranchLengthByName(modelList, best_models, "mixtureTree", bNames[bI], bI, "branchLengths");
+//}
 //fprintf(stdout, "\nBranch lengths:\n");
 //fprintf(stdout, branchLengths);
 //fprintf(stdout, "\n");
@@ -452,8 +477,11 @@ function processResults(res_LF, nodeID)
         this_parameters = orig_parameters + best_models[nodeID] + 1;
     }
     this_bic = calcBIC(this_likelihood, this_parameters, algn_len); // algn_len is a global variable
-    fprintf(stdout, "\nThis likelihood: " + this_likelihood + " parameter count: " + this_parameters + "\n");
-    fprintf(stdout, "This BIC: " + this_bic + " Last bic: " + last_bics[nodeID] + "\n\n");
+    if (VERBOSITY_LEVEL >= 1)
+    {
+        fprintf(stdout, "\nThis likelihood: " + this_likelihood + " parameter count: " + this_parameters + "\n");
+        fprintf(stdout, "This BIC: " + this_bic + " Last bic: " + last_bics[nodeID] + "\n\n");
+    }
     if (last_bics[nodeID] <= this_bic) // last_bics is a global variable
     {
         done_branches[nodeID] = 1; // done_branches is a global variable
@@ -463,11 +491,65 @@ function processResults(res_LF, nodeID)
         last_bics[nodeID] = this_bic;
         best_models[nodeID] = best_models[nodeID] + 1; // best_models is a global variable
     }
-    lfOut	= csvFilePath + ".branch" + nodeID + ".omega" + best_models[nodeID] + ".fit";
-    LIKELIHOOD_FUNCTION_OUTPUT = 7;
-    fprintf (lfOut, CLEAR_FILE, three_LF);
-    LIKELIHOOD_FUNCTION_OUTPUT = 2;
+    if (VERBOSITY_LEVEL >= 5)
+    {
+        lfOut	= csvFilePath + ".branch" + nodeID + ".omega" + best_models[nodeID] + ".fit";
+        LIKELIHOOD_FUNCTION_OUTPUT = 7;
+        fprintf (lfOut, CLEAR_FILE, three_LF);
+        LIKELIHOOD_FUNCTION_OUTPUT = 2;
+    }
     return thisRes;
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+function calculateBranchLengths(modelList, bestModels, treeName, branchNames, branchLengthsID)
+{
+    for (bI = 0; bI < Abs(bestModels); bI = bI + 1)
+    {
+        evalString = "";
+        branchLength = 0;
+        ExecuteCommands("t = `treeName`." + branchNames[bI] + ".t;");
+        for (mI = 1; mI <= bestModels[bI]; mI = mI + 1)
+        {
+            // values
+            ExecuteCommands("Model M" + mI + "= (MGMatrix" + mI + ", codon3x4, 0);");
+            ExecuteCommands("GetString(M" + mI + "L, M" + mI + ", -1);");
+            ExecuteCommands("omega" + mI + " = Eval(`treeName`."+ branchNames[bI] + ".omega" + mI + ");");
+            if (mI != bestModels[bI])
+            {
+                ExecuteCommands("Paux" + mI + " = Eval(`treeName`."+ branchNames[bI] + ".Paux" + mI + ");");
+            }
+
+            // string
+            ExecuteCommands("tempML = M" + mI + "L;");
+            ExecuteCommands("evalString = evalString + (`tempML`)");
+            if (mI != bestModels[bI])
+            {
+                evalstring = evalstring + "*Paux" + mI;
+            }
+            for (prevMI = mI - 1; prevMI > 0; prevMI = prevMI - 1)
+            {
+                evalstring = evalstring + "*(1-Paux" + prevMI + ")";
+            }
+        }
+        evalstring = evalstring + ")/3";
+        branchLength = Eval(evalstring);
+        if (VERBOSITY_LEVEL >= 1)
+        {
+            fprintf(stdout, "\n");
+            fprintf(stdout, branchName);
+            fprintf(stdout, ":\n");
+            fprintf(stdout, "\n");
+            fprintf(stdout, evalstring);
+            fprintf(stdout, "\n");
+            fprintf(stdout, "\n");
+            fprintf(stdout, branchLength);
+            fprintf(stdout, "\n");
+        }
+        ExecuteCommands(branchLengthsID + "[" + bI + "] = " + branchLength + ";");
+    }
+
+    return 0;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -484,7 +566,6 @@ function calculateBranchLengthByName (modelList, bestModels, treeName, branchNam
     models = {};
     for (mI = 1; mI <= bestModels[branchNumber]; mI = mI + 1)
     {
-        //ExecuteCommands ("Model M" + mI + " = (MGMatrix" + 1 + ", codon3x4, 0)");
         ExecuteCommands ("Model M" + mI + " = (MGMatrix" + mI + ", codon3x4, 0)");
         models[mI] = "M" + mI;
     }
@@ -493,10 +574,7 @@ function calculateBranchLengthByName (modelList, bestModels, treeName, branchNam
     for (mI = 1; mI <= bestModels[branchNumber]; mI = mI + 1)
     {
         ExecuteCommands ("GetString (M" + mI + "L, M" + mI + ", -1);");
-        //GetString(tempML, modelList[mI], -1);
-        //mls[mI] = tempML;
         mls[mI] = "M" + mI + "L";
-        //fprintf(stdout, tempML);
     }
 
     t = Eval("`treeName`.`branchName`.t");
@@ -505,18 +583,12 @@ function calculateBranchLengthByName (modelList, bestModels, treeName, branchNam
     evalstring = "(";
     for (oI = 1; oI <= bestModels[branchNumber]; oI = oI + 1)
     {
-        // String
         if (oI > 1)
         {
             evalstring = evalstring + "+";
         }
-        //evalstring = evalstring + "(" + mls[oI] + ")";
-        //evalstring = evalstring + "(" + mls[oI] + ")";
-        //evalstring = evalstring + "(" + mls[oI] + ")";
-        //ExecuteCommands("evalstring = evalstring + \"(" + mls[oI] + ")\";");
         ExecuteCommands("tempML = " + mls[oI] + ";");
         ExecuteCommands("evalstring = evalstring + \"(" + tempML + ")\";");
-        //evalstring = evalstring + "(" + mls[oI] + ")";
         if (oI != bestModels[branchNumber])
         {
             evalstring = evalstring + "*Paux" + oI;
@@ -526,7 +598,6 @@ function calculateBranchLengthByName (modelList, bestModels, treeName, branchNam
             evalstring = evalstring + "*(1-Paux" + prevOI + ")";
         }
 
-        // Values
         omegas[oI] = Eval("`treeName`.`branchName`.omega" + oI);
         if (oI < bestModels[branchNumber])
         {
@@ -537,19 +608,19 @@ function calculateBranchLengthByName (modelList, bestModels, treeName, branchNam
     // length calculations use the nucleotide as the unit of evolution. We're
     // using the codon here.
     evalstring = evalstring + ")/3";
-
-
-    fprintf(stdout, "\n");
-    fprintf(stdout, branchName);
-    fprintf(stdout, ":\n");
-
-    fprintf(stdout, "\n");
-    fprintf(stdout, evalstring);
-    fprintf(stdout, "\n");
     branchLength = Eval(evalstring);
-    fprintf(stdout, "\n");
-    fprintf(stdout, branchLength);
-    fprintf(stdout, "\n");
+    if (VERBOSITY_LEVEL >= 1)
+    {
+        fprintf(stdout, "\n");
+        fprintf(stdout, branchName);
+        fprintf(stdout, ":\n");
+        fprintf(stdout, "\n");
+        fprintf(stdout, evalstring);
+        fprintf(stdout, "\n");
+        fprintf(stdout, "\n");
+        fprintf(stdout, branchLength);
+        fprintf(stdout, "\n");
+    }
     ExecuteCommands(branchLengthsID + "[branchNumber] = " + branchLength + ";");
 
     return branchLength;

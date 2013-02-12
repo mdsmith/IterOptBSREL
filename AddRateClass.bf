@@ -59,12 +59,15 @@ function addRate2BranchAdvanced(lfID, nucCF, branchName, defaultModel, modelList
         }
         numOmegas = numOmegas + 1;
     }
-    fprintf(stdout, "\n");
-    fprintf(stdout, "Last set's values:\n");
-    fprintf(stdout, currentParams);
-    fprintf(stdout, "\n");
-    fprintf(stdout, paramProportions);
-    fprintf(stdout, "\n");
+    if (VERBOSITY_LEVEL >=10)
+    {
+        fprintf(stdout, "\n");
+        fprintf(stdout, "Last set's values:\n");
+        fprintf(stdout, currentParams);
+        fprintf(stdout, "\n");
+        fprintf(stdout, paramProportions);
+        fprintf(stdout, "\n");
+    }
 
     // So I guess if nextOmega = 1 then the original n/ns rate needs to
     // become omega1 and there needs to be an additional omega2 rate class.
@@ -162,10 +165,13 @@ function addRate2BranchAdvanced(lfID, nucCF, branchName, defaultModel, modelList
             matrixString = matrixString + "*(1-Paux" + prevParamI + ")";
         }
     }
-    fprintf(stdout, "matrixString:\n");
-    fprintf(stdout, "\n");
-    fprintf(stdout, matrixString);
-    fprintf(stdout, "\n");
+    if (VERBOSITY_LEVEL >=1)
+    {
+        fprintf(stdout, "matrixString:\n");
+        fprintf(stdout, "\n");
+        fprintf(stdout, matrixString);
+        fprintf(stdout, "\n");
+    }
     //ExecuteCommands ("Model BSREL = (matrixString, " + lfbaseFreqsID + ", EXPLICIT_FORM_MATRIX_EXPONENTIAL);");
 
 
@@ -207,8 +213,11 @@ function addRate2BranchAdvanced(lfID, nucCF, branchName, defaultModel, modelList
     {
         new_tree_string = new_tree_string^{{branchName + ":", branchName + "{BSREL" + nextOmega + "}:"}};
     }
-    fprintf(stdout, new_tree_string);
-    fprintf(stdout, "\n");
+    if (VERBOSITY_LEVEL >= 1)
+    {
+        fprintf(stdout, new_tree_string);
+        fprintf(stdout, "\n");
+    }
 
     if (replace_tree == 1)
     {
@@ -301,7 +310,7 @@ function assignModels2Branches(lfID, nucCF, defaultModel, branch_names, model_as
             temp_omegas[mI] = 10;
             srate = Eval (lfTreeID + "." + branch_names[mI] + ".syn");
             nsrate = Eval (lfTreeID + "." + branch_names[mI] + ".nonsyn");
-            fprintf(stdout, "" + nsrate + ", " + srate + "\n");
+            //fprintf(stdout, "" + nsrate + ", " + srate + "\n");
             if (srate > 0)
             {
                 temp_omegas[mI] = Min (10, nsrate/srate);
@@ -322,8 +331,11 @@ function assignModels2Branches(lfID, nucCF, defaultModel, branch_names, model_as
             final_tree_string = final_tree_string^{{branch_names[mod_assgn_I] + ":", branch_names[mod_assgn_I] + "{BSREL" + model_assignments[mod_assgn_I] + "}:"}};
         }
     }
-    fprintf(stdout, final_tree_string);
-    fprintf(stdout, "\n");
+    if (VERBOSITY_LEVEL >= 1)
+    {
+        fprintf(stdout, final_tree_string);
+        fprintf(stdout, "\n");
+    }
 
     REPLACE_TREE_STRUCTURE = 1;
 
