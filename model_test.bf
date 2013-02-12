@@ -506,7 +506,7 @@ function calculateBranchLengths(modelList, bestModels, treeName, branchNames, br
 {
     for (bI = 0; bI < Abs(bestModels); bI = bI + 1)
     {
-        evalString = "";
+        evalstring = "(";
         branchLength = 0;
         ExecuteCommands("t = `treeName`." + branchNames[bI] + ".t;");
         for (mI = 1; mI <= bestModels[bI]; mI = mI + 1)
@@ -514,16 +514,21 @@ function calculateBranchLengths(modelList, bestModels, treeName, branchNames, br
             // values
             ExecuteCommands("Model M" + mI + "= (MGMatrix" + mI + ", codon3x4, 0);");
             ExecuteCommands("GetString(M" + mI + "L, M" + mI + ", -1);");
-            ExecuteCommands("omega" + mI + " = Eval(`treeName`."+ branchNames[bI] + ".omega" + mI + ");");
+            ExecuteCommands("omega" + mI + " = `treeName`."+ branchNames[bI] + ".omega" + mI + ";");
             if (mI != bestModels[bI])
             {
-                ExecuteCommands("Paux" + mI + " = Eval(`treeName`."+ branchNames[bI] + ".Paux" + mI + ");");
+                ExecuteCommands("Paux" + mI + " = `treeName`."+ branchNames[bI] + ".Paux" + mI + ";");
             }
 
-            // string
+            // OLD
+            if (mI > 1)
+            {
+                evalstring = evalstring + "+";
+            }
+            //ExecuteCommands("tempML = " + mls[oI] + ";");
             ExecuteCommands("tempML = M" + mI + "L;");
-            ExecuteCommands("evalString = evalString + (`tempML`)");
-            if (mI != bestModels[bI])
+            ExecuteCommands("evalstring = evalstring + \"(" + tempML + ")\";");
+            if (mI != bestModels[branchNumber])
             {
                 evalstring = evalstring + "*Paux" + mI;
             }
@@ -531,13 +536,39 @@ function calculateBranchLengths(modelList, bestModels, treeName, branchNames, br
             {
                 evalstring = evalstring + "*(1-Paux" + prevMI + ")";
             }
+
+            //omegas[oI] = Eval("`treeName`.`branchName`.omega" + mI);
+            //if (oI < bestModels[branchNumber])
+            //{
+                //pauxs[oI] = Eval("`treeName`.`branchName`.Paux" + oI);
+            //}
+            // You divide the estimated length by three because canonical branch
+            // length calculations use the nucleotide as the unit of evolution. We're
+            // using the codon here.
+            // END OLD
+
+            // string
+            //ExecuteCommands("tempML = M" + mI + "L;");
+            //ExecuteCommands("evalString = evalString + (`tempML`)");
+            //if (mI != bestModels[bI])
+            //{
+                //evalstring = evalstring + "*Paux" + mI;
+            //}
+            //for (prevMI = mI - 1; prevMI > 0; prevMI = prevMI - 1)
+            //{
+                //evalstring = evalstring + "*(1-Paux" + prevMI + ")";
+            //}
         }
         evalstring = evalstring + ")/3";
+        //evalstring = evalstring + ")/3";
+        //fprintf(stdout, "Evalstring: \n");
+        //fprintf(stdout, evalstring);
+        //fprintf(stdout, "\n");
         branchLength = Eval(evalstring);
         if (VERBOSITY_LEVEL >= 1)
         {
             fprintf(stdout, "\n");
-            fprintf(stdout, branchName);
+            fprintf(stdout, branchNames[bI]);
             fprintf(stdout, ":\n");
             fprintf(stdout, "\n");
             fprintf(stdout, evalstring);
