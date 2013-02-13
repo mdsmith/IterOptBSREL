@@ -1,4 +1,8 @@
-VERBOSITY_LEVEL				 = 0;
+// XXX check initialization
+// MG94 and BSREL1 don't agree. Initialize BSREL1 properly (check)
+// Initialize BSREL2,3 from BSREL1, compare to BSREL1
+
+VERBOSITY_LEVEL				 = 1;
 FAST_MODE = 0;
 
 skipCodeSelectionStep 		= 0;
@@ -58,18 +62,21 @@ csvFilePath = LAST_FILE_PATH;
 
 fprintf 					  (stdout, "[PHASE 0] Fitting the local MG94 (no site-to-site variation) to obtain initial parameter estimates\n");
 
-LikelihoodFunction	base_LF	 = (dsf, givenTree);
+LikelihoodFunction mg94_LF  = (dsf,givenTree);
 
 LoadFunctionLibrary			 ("DescriptiveStatistics");
 totalBranchCount			 = BranchCount(givenTree) + TipCount (givenTree);
-pValueByBranch				  = {totalBranchCount,10};
+//pValueByBranch = {totalBranchCount,10}; // XXX remove after test
 bNames						  = BranchName (givenTree, -1);
 
 // Create the proper MGL parameters on the branches of the tree
+/* Unless we go back to basing omega values on descriptive statistics, this
+ * can be removed XXX
 for (k = 0; k < totalBranchCount; k = k+1)
 {
 	srate  = Eval ("givenTree." + bNames[k] + ".syn");
 	nsrate = Eval ("givenTree." + bNames[k] + ".nonsyn");
+
 	if (srate > 0)
 	{
 		pValueByBranch [k][0] = Min (10, nsrate/srate);
@@ -79,9 +86,56 @@ for (k = 0; k < totalBranchCount; k = k+1)
 		pValueByBranch [k][0] = 10;
 	}
 }
+*/
 
-omegaStats					 = GatherDescriptiveStats (pValueByBranch[-1][0]);
-fprintf						 (stdout, "\nLog L = ", localLL, " with ", localParams, " degrees of freedom\n");
+//omegaStats					 = GatherDescriptiveStats (pValueByBranch[-1][0]);
+//fprintf						 (stdout, "\nLog L = ", localLL, " with ", localParams, " degrees of freedom\n");
+
+
+// Print the MGL .fit file
+if (VERBOSITY_LEVEL >= 1)
+{
+    lfOut	= csvFilePath + ".MG94init.fit";
+    LIKELIHOOD_FUNCTION_OUTPUT = 7;
+    fprintf (lfOut, CLEAR_FILE, mg94_LF);
+    LIKELIHOOD_FUNCTION_OUTPUT = 2;
+}
+
+// Optimize the MGL likelihood function
+Optimize(res_mg94_LF, mg94_LF);
+
+// Print the MGL .fit file post optimization
+if (VERBOSITY_LEVEL >= 1)
+{
+    fprintf(stdout, "\n");
+    lfOut	= csvFilePath + ".MG94opt.fit";
+    LIKELIHOOD_FUNCTION_OUTPUT = 7;
+    fprintf (lfOut, CLEAR_FILE, mg94_LF);
+    LIKELIHOOD_FUNCTION_OUTPUT = 2;
+}
+
+// Setup variables to be filled at each iteration
+iter_likelihood = 0; // Determined after Optimize
+iter_samples = algn_len;
+iter_parameters = 0; // Known, but can be determined after Optimize
+init_parameters = 0;
+
+GetInformation(dsf_seq_array, dsf);
+
+// Calculate the results from the MGL fitting, to see if we can do better
+origRes = res_mg94_LF[1][0] - 1.0;
+orig_likelihood = res_mg94_LF[1][0];
+orig_parameters = res_mg94_LF[1][1];
+orig_bic = calcBIC(orig_likelihood, orig_parameters, iter_samples);
+
+if (VERBOSITY_LEVEL >= 1)
+{
+    fprintf(stdout, "\nMG94 likelihood: " + orig_likelihood + " BIC: " + orig_bic + "\n\n");
+}
+
+//-------------------------------------------------------------------------
+// LOCAL DONE. Starting the parallel iterative optimizer
+//-------------------------------------------------------------------------
 
 Tree						   mixtureTree = treeString;
 
@@ -92,48 +146,6 @@ ASSUME_REVERSIBLE_MODELS	  = 1;
 VERBOSITY_LEVEL               = 1;
 
 LikelihoodFunction three_LF  = (dsf,mixtureTree);
-
-// Print the MGL .fit file
-if (VERBOSITY_LEVEL >= 5)
-{
-    lfOut	= csvFilePath + ".tree.fit";
-    LIKELIHOOD_FUNCTION_OUTPUT = 7;
-    fprintf (lfOut, CLEAR_FILE, three_LF);
-    LIKELIHOOD_FUNCTION_OUTPUT = 2;
-}
-
-// Optimize the MGL likelihood function
-Optimize (res_three_LF,three_LF);
-
-// Print the MGL .fit file post optimization
-if (VERBOSITY_LEVEL >= 5)
-{
-    fprintf(stdout, "\n");
-    lfOut	= csvFilePath + ".optTree.fit";
-    LIKELIHOOD_FUNCTION_OUTPUT = 7;
-    fprintf (lfOut, CLEAR_FILE, three_LF);
-    LIKELIHOOD_FUNCTION_OUTPUT = 2;
-}
-
-//-------------------------------------------------------------------------
-// LOCAL DONE. Starting the parallel iterative optimizer
-//-------------------------------------------------------------------------
-
-// Setup variables to be filled at each iteration
-iter_likelihood = 0; // Determined after Optimize
-iter_samples = algn_len;
-iter_parameters = 0; // Known, but can be determined after Optimize
-init_parameters = 0;
-
-GetInformation(dsf_seq_array, dsf);
-
-//Export(three_LF_bak, three_LF); // not used...
-
-// Calculate the results from the MGL fitting, to see if we can do better
-origRes = res_three_LF[1][0] - 1.0;
-orig_likelihood = res_three_LF[1][0];
-orig_parameters = res_three_LF[1][1];
-orig_bic = calcBIC(orig_likelihood, orig_parameters, iter_samples);
 
 // In the MPI version of this code we need to keep track of the results from
 // all branches at once, so instead of variables to store results from one
@@ -165,13 +177,21 @@ VERBOSITY_LEVEL = 1;
 // XXX Testing interlude: is the comparison to MGL what is screwing us up?
 assignModels2Branches("three_LF", nucCF, "BSREL1", bNames, working_models, algn_len, model_list, null);
 // Optimize the MGL likelihood function
+if (VERBOSITY_LEVEL >= 1)
+{
+    fprintf(stdout, "\n");
+    lfOut	= csvFilePath + ".BSREL1init.fit";
+    LIKELIHOOD_FUNCTION_OUTPUT = 7;
+    fprintf (lfOut, CLEAR_FILE, three_LF);
+    LIKELIHOOD_FUNCTION_OUTPUT = 2;
+}
 Optimize (res_three_LF,three_LF);
 
 // Print the MGL .fit file post optimization
-if (VERBOSITY_LEVEL >= 5)
+if (VERBOSITY_LEVEL >= 1)
 {
     fprintf(stdout, "\n");
-    lfOut	= csvFilePath + ".BSREL1Tree.fit";
+    lfOut	= csvFilePath + ".BSREL1opt.fit";
     LIKELIHOOD_FUNCTION_OUTPUT = 7;
     fprintf (lfOut, CLEAR_FILE, three_LF);
     LIKELIHOOD_FUNCTION_OUTPUT = 2;
@@ -181,18 +201,17 @@ origRes = res_three_LF[1][0] - 1.0;
 orig_likelihood = res_three_LF[1][0];
 orig_parameters = res_three_LF[1][1];
 orig_bic = calcBIC(orig_likelihood, orig_parameters, iter_samples);
-if (VERBOSITY_LEVEL >= 2)
+if (VERBOSITY_LEVEL >= 1)
 {
     fprintf(stdout, "\nBSREL1 likelihood: " + orig_likelihood + " BIC: " + orig_bic + "\n\n");
-    fprintf(stdout, "\nBSREL1 branch lengths:\n");
 }
 
 branchLengths = {};
 // PRINT out the calculated branch lengths
-for (bI = 0; bI < totalBranchCount; bI = bI + 1)
-{
-    calculateBranchLengthByName(modelList, best_models, "mixtureTree", bNames[bI], bI, "branchLengths");
-}
+//for (bI = 0; bI < totalBranchCount; bI = bI + 1)
+//{
+    //calculateBranchLengthByName(modelList, best_models, "mixtureTree", bNames[bI], bI, "branchLengths");
+//}
 // XXX end testing interlude
 
 for (initI = 0; initI < totalBranchCount; initI = initI + 1)
@@ -202,12 +221,12 @@ for (initI = 0; initI < totalBranchCount; initI = initI + 1)
     //fprintf(stdout, mgl_ts[initI]);
     //fprintf(stdout, "\n");
 }
-if (VERBOSITY_LEVEL >= 2)
-{
-    fprintf(stdout, "\nT results from BSREL1\n");
-    fprintf(stdout, mgl_ts);
-    fprintf(stdout, "\n");
-}
+//if (VERBOSITY_LEVEL >= 2)
+//{
+    //fprintf(stdout, "\nT results from BSREL1\n");
+    //fprintf(stdout, mgl_ts);
+    //fprintf(stdout, "\n");
+//}
 
 branchesToOptimize = totalBranchCount;
 
@@ -244,6 +263,14 @@ while (branchesToOptimize > 0)
             {
                 assignModels2Branches("three_LF", nucCF, "BSREL1", bNames, working_models, algn_len, model_list, null);
             }
+            // Print
+            if (VERBOSITY_LEVEL >= 1)
+            {
+                lfOut	= csvFilePath + "." + bNames[launchI] + ".omega" + working_models[launchI] + "init.fit";
+                LIKELIHOOD_FUNCTION_OUTPUT = 7;
+                fprintf (lfOut, CLEAR_FILE, three_LF);
+                LIKELIHOOD_FUNCTION_OUTPUT = 2;
+            }
             if (mpi_mode)
             {
                 // Fork:
@@ -253,6 +280,14 @@ while (branchesToOptimize > 0)
             {
                 // Don't fork, optimize:
                 OptBranch(launchI);
+            }
+            if (VERBOSITY_LEVEL >= 1)
+            {
+                // Print
+                lfOut	= csvFilePath + "." + bNames[launchI] + ".omega" + working_models[launchI] + "opt.fit";
+                LIKELIHOOD_FUNCTION_OUTPUT = 7;
+                fprintf (lfOut, CLEAR_FILE, three_LF);
+                LIKELIHOOD_FUNCTION_OUTPUT = 2;
             }
         }
     }
@@ -294,7 +329,13 @@ if (VERBOSITY_LEVEL >= 1)
 // Apply best_models to a new likelihood function
 assignModels2Branches("three_LF", nucCF, "BSREL1", bNames, best_models, algn_len, model_list, null);
 
-//VERBOSITY_LEVEL = 10; // 10 prints EVERYTHING
+if (VERBOSITY_LEVEL >= 1)
+{
+    lfOut	= csvFilePath + ".finalTreeInit.fit";
+    LIKELIHOOD_FUNCTION_OUTPUT = 7;
+    fprintf (lfOut, CLEAR_FILE, three_LF);
+    LIKELIHOOD_FUNCTION_OUTPUT = 2;
+}
 
 Optimize (res_three_LF,three_LF);
 fprintf(stdout, "\n");
@@ -304,7 +345,7 @@ iter_likelihood = res_three_LF[1][0];
 iter_parameters = res_three_LF[1][1];
 
 iter_bic = calcBIC(iter_likelihood, iter_parameters, iter_samples);
-if (VERBOSITY_LEVEL >= 2)
+if (VERBOSITY_LEVEL >= 1)
 {
     fprintf(stdout, "This iterations likelihood: " + iter_likelihood);
     fprintf(stdout, "\n");
@@ -316,10 +357,13 @@ if (VERBOSITY_LEVEL >= 2)
     fprintf(stdout, "\n");
 }
 
-lfOut	= csvFilePath + ".finalTree.fit";
-LIKELIHOOD_FUNCTION_OUTPUT = 7;
-fprintf (lfOut, CLEAR_FILE, three_LF);
-LIKELIHOOD_FUNCTION_OUTPUT = 2;
+if (VERBOSITY_LEVEL >= 1)
+{
+    lfOut	= csvFilePath + ".finalTreeOpt.fit";
+    LIKELIHOOD_FUNCTION_OUTPUT = 7;
+    fprintf (lfOut, CLEAR_FILE, three_LF);
+    LIKELIHOOD_FUNCTION_OUTPUT = 2;
+}
 
 
 //---- TREE RENDERING -----
@@ -491,13 +535,14 @@ function processResults(res_LF, nodeID)
         last_bics[nodeID] = this_bic;
         best_models[nodeID] = best_models[nodeID] + 1; // best_models is a global variable
     }
-    if (VERBOSITY_LEVEL >= 5)
-    {
-        lfOut	= csvFilePath + ".branch" + nodeID + ".omega" + best_models[nodeID] + ".fit";
-        LIKELIHOOD_FUNCTION_OUTPUT = 7;
-        fprintf (lfOut, CLEAR_FILE, three_LF);
-        LIKELIHOOD_FUNCTION_OUTPUT = 2;
-    }
+    // replaced in the main optimizer loop
+    //if (VERBOSITY_LEVEL >= 5)
+    //{
+        //lfOut	= csvFilePath + ".branch" + nodeID + ".omega" + best_models[nodeID] + ".fit";
+        //LIKELIHOOD_FUNCTION_OUTPUT = 7;
+        //fprintf (lfOut, CLEAR_FILE, three_LF);
+        //LIKELIHOOD_FUNCTION_OUTPUT = 2;
+    //}
     return thisRes;
 }
 

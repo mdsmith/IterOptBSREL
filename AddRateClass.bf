@@ -59,7 +59,7 @@ function addRate2BranchAdvanced(lfID, nucCF, branchName, defaultModel, modelList
         }
         numOmegas = numOmegas + 1;
     }
-    if (VERBOSITY_LEVEL >=10)
+    if (VERBOSITY_LEVEL >= 2)
     {
         fprintf(stdout, "\n");
         fprintf(stdout, "Last set's values:\n");
@@ -75,12 +75,13 @@ function addRate2BranchAdvanced(lfID, nucCF, branchName, defaultModel, modelList
     // going forward
     if (nextOmega == 1)
     {
-
+        // XXX I'm using givenTree here because that is what is optimized in
+        // MG94 model.
         currentParams[1] = 10;
         currentParams[2] = currentParams[1]*2;
         paramProportions[1] = (algn_len-1)/algn_len;
-        srate = Eval (lfTreeID + "." + branchName + ".syn");
-        nsrate = Eval (lfTreeID + "." + branchName + ".nonsyn");
+        srate = Eval ("givenTree." + branchName + ".syn");
+        nsrate = Eval ("givenTree." + branchName + ".nonsyn");
         if (srate > 0)
         {
             //currentParams[0] = Min (10, nsrate/srate);
@@ -165,7 +166,7 @@ function addRate2BranchAdvanced(lfID, nucCF, branchName, defaultModel, modelList
             matrixString = matrixString + "*(1-Paux" + prevParamI + ")";
         }
     }
-    if (VERBOSITY_LEVEL >=1)
+    if (VERBOSITY_LEVEL >= 1)
     {
         fprintf(stdout, "matrixString:\n");
         fprintf(stdout, "\n");
@@ -302,21 +303,23 @@ function assignModels2Branches(lfID, nucCF, defaultModel, branch_names, model_as
         }
     }
 
-    if (Abs(temp_omegas) == 0)
+    ts = {};
+    //if (Abs(temp_omegas) == 0)
+    //{
+    temp_omegas = {};
+    for (mI = 0; mI < Abs(model_assignments); mI = mI + 1)
     {
-        temp_omegas = {};
-        for (mI = 0; mI < Abs(model_assignments); mI = mI + 1)
+        temp_omegas[mI] = 10;
+        srate = Eval ("givenTree." + branch_names[mI] + ".syn");
+        nsrate = Eval ("givenTree." + branch_names[mI] + ".nonsyn");
+        ts[mI] = Eval ("givenTree." + branch_names[mI] + ".syn");
+        //fprintf(stdout, "" + nsrate + ", " + srate + "\n");
+        if (srate > 0)
         {
-            temp_omegas[mI] = 10;
-            srate = Eval (lfTreeID + "." + branch_names[mI] + ".syn");
-            nsrate = Eval (lfTreeID + "." + branch_names[mI] + ".nonsyn");
-            //fprintf(stdout, "" + nsrate + ", " + srate + "\n");
-            if (srate > 0)
-            {
-                temp_omegas[mI] = Min (10, nsrate/srate);
-            }
+            temp_omegas[mI] = Min (10, nsrate/srate);
         }
     }
+    //}
 
     //fprintf(stdout, "\nomega results: \n");
     //fprintf(stdout, temp_omegas);
@@ -337,6 +340,7 @@ function assignModels2Branches(lfID, nucCF, defaultModel, branch_names, model_as
         fprintf(stdout, "\n");
     }
 
+    USE_LAST_RESULTS = 1;
     REPLACE_TREE_STRUCTURE = 1;
 
     ExecuteCommands ("UseModel(" + defaultModel + ")");
@@ -362,21 +366,20 @@ function assignModels2Branches(lfID, nucCF, defaultModel, branch_names, model_as
         {
             for (omegaI = 1; omegaI <= model_assignments[mod_assgn_I]; omegaI = omegaI + 1)
             {
-                //ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".omega" + omegaI + " = " + (temp_omegas[mod_assgn_I] * (2^omegaI)) + ";");
                 ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".omega" + omegaI + equality_operator + (temp_omegas[mod_assgn_I] * (2^omegaI)) + ";");
                 if (omegaI != model_assignments[mod_assgn_I])
                 {
-                    //ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".Paux" + omegaI + " = " + ((algn_len - 1)/algn_len) + ";");
                     ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".Paux" + omegaI + equality_operator + ((algn_len - 1)/algn_len) + ";");
                     ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".Paux" + omegaI + " :< 1;");
                 }
             }
             if (model_assignments[mod_assgn_I] > 1)
             {
-                //ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".Paux1 = " + (1 - (model_assignments[mod_assgn_I] * (1/algn_len))) + ";");
                 ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".Paux1 " + equality_operator + (1 - (model_assignments[mod_assgn_I] * (1/algn_len))) + ";");
             }
         }
+        ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".t = " + ts[mod_assgn_I] + ";");
+        //ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".t = 1;");
     }
 
     return 0;
