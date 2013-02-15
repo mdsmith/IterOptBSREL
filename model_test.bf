@@ -139,6 +139,8 @@ if (VERBOSITY_LEVEL >= 1)
 
 Tree						   mixtureTree = treeString;
 
+// These don't effectively copy the t values, but they do create the t
+// parameters, which is (for the time being) useful.
 ReplicateConstraint 		  ("this1.?.t:=this2.?.syn",mixtureTree,givenTree);
 
 ClearConstraints			  (mixtureTree);
@@ -157,11 +159,33 @@ best_models = {};
 done_branches = {};
 working_models = {};
 fixed_branches = {};
-mgl_ts = {};
+initial_ts = {};
+initial_omegas = {};
+
+/*
+ts = {};
+temp_omegas = {};
+
+for (mI = 0; mI < totalBranchCount; mI = mI + 1)
+{
+    temp_omegas[mI] = 10;
+    srate = Eval ("givenTree." + bNames[mI] + ".syn");
+    nsrate = Eval ("givenTree." + bNames[mI] + ".nonsyn");
+    ts[mI] = Eval ("givenTree." + bNames[mI] + ".syn");
+    //fprintf(stdout, "" + nsrate + ", " + srate + "\n");
+    if (srate > 0)
+    {
+        temp_omegas[mI] = Min (10, nsrate/srate);
+    }
+}
+*/
+//mgl_ts = {};
 
 // Initialize these results to reasonable values
 for (initI = 0; initI < totalBranchCount; initI = initI + 1)
 {
+    initial_ts[initI] = 1;
+    initial_omegas[initI] = 0.1;
     best_models[initI] = 1; // So far the optimal omega # = 1 for all branches
     done_branches[initI] = 0; // none of the branches are done yet
     working_models[initI] = 1;  // This will be filled at each step, so these
@@ -171,11 +195,33 @@ for (initI = 0; initI < totalBranchCount; initI = initI + 1)
                                 //per branch, thus MGL's BIC
     fixed_branches[initI] = 1;
 }
+for (mI = 0; mI < totalBranchCount; mI = mI + 1)
+{
+    initial_omegas[mI] = 10;
+    srate = Eval ("givenTree." + bNames[mI] + ".syn");
+    nsrate = Eval ("givenTree." + bNames[mI] + ".nonsyn");
+    initial_ts[mI] = Eval ("givenTree." + bNames[mI] + ".syn");
+    //fprintf(stdout, "" + nsrate + ", " + srate + "\n");
+    if (srate > 0)
+    {
+        initial_omegas[mI] = Min (10, nsrate/srate);
+    }
+}
 
 VERBOSITY_LEVEL = 1;
 
+//USE_MG94 = 1;
 // XXX Testing interlude: is the comparison to MGL what is screwing us up?
-assignModels2Branches("three_LF", nucCF, "BSREL1", bNames, working_models, algn_len, model_list, null);
+assignModels2Branches(  "three_LF",
+                        nucCF,
+                        "BSREL1",
+                        bNames,
+                        working_models,
+                        algn_len,
+                        model_list,
+                        null,
+                        initial_ts,
+                        initial_omegas);
 // Optimize the MGL likelihood function
 if (VERBOSITY_LEVEL >= 1)
 {
@@ -206,6 +252,20 @@ if (VERBOSITY_LEVEL >= 1)
     fprintf(stdout, "\nBSREL1 likelihood: " + orig_likelihood + " BIC: " + orig_bic + "\n\n");
 }
 
+for (mI = 0; mI < totalBranchCount; mI = mI + 1)
+{
+    initial_omegas[mI] = Eval ("mixtureTree." + bNames[mI] + ".omega1");
+    initial_ts[mI] = Eval ("mixtureTree." + bNames[mI] + ".t");
+}
+
+/*
+fprintf(stdout, "ts:\n");
+fprintf(stdout, ts);
+fprintf(stdout, "temp_omegas::\n");
+fprintf(stdout, temp_omegas);
+USE_MG94 = 0;
+*/
+
 branchLengths = {};
 // PRINT out the calculated branch lengths
 //for (bI = 0; bI < totalBranchCount; bI = bI + 1)
@@ -214,6 +274,7 @@ branchLengths = {};
 //}
 // XXX end testing interlude
 
+/*
 for (initI = 0; initI < totalBranchCount; initI = initI + 1)
 {
     ExecuteCommands("mgl_ts[" + initI + "] = mixtureTree." + bNames[initI] + ".t;");
@@ -221,6 +282,7 @@ for (initI = 0; initI < totalBranchCount; initI = initI + 1)
     //fprintf(stdout, mgl_ts[initI]);
     //fprintf(stdout, "\n");
 }
+*/
 //if (VERBOSITY_LEVEL >= 2)
 //{
     //fprintf(stdout, "\nT results from BSREL1\n");
@@ -256,12 +318,30 @@ while (branchesToOptimize > 0)
             if (FAST_MODE == 1)
             {
                 fixed_branches[launchI] = 0;
-                assignModels2Branches("three_LF", nucCF, "BSREL1", bNames, working_models, algn_len, model_list, fixed_branches);
+                assignModels2Branches(  "three_LF",
+                                        nucCF,
+                                        "BSREL1",
+                                        bNames,
+                                        working_models,
+                                        algn_len,
+                                        model_list,
+                                        fixed_branches,
+                                        initial_ts,
+                                        initial_omegas);
                 fixed_branches[launchI] = 1;
             }
             else
             {
-                assignModels2Branches("three_LF", nucCF, "BSREL1", bNames, working_models, algn_len, model_list, null);
+                assignModels2Branches(  "three_LF",
+                                        nucCF,
+                                        "BSREL1",
+                                        bNames,
+                                        working_models,
+                                        algn_len,
+                                        model_list,
+                                        null,
+                                        initial_ts,
+                                        initial_omegas);
             }
             // Print
             if (VERBOSITY_LEVEL >= 1)
@@ -327,7 +407,16 @@ if (VERBOSITY_LEVEL >= 1)
 }
 
 // Apply best_models to a new likelihood function
-assignModels2Branches("three_LF", nucCF, "BSREL1", bNames, best_models, algn_len, model_list, null);
+assignModels2Branches(  "three_LF",
+                        nucCF,
+                        "BSREL1",
+                        bNames,
+                        best_models,
+                        algn_len,
+                        model_list,
+                        null,
+                        initial_ts,
+                        initial_omegas);
 
 if (VERBOSITY_LEVEL >= 1)
 {

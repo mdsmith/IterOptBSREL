@@ -254,7 +254,17 @@ function addRate2BranchAdvanced(lfID, nucCF, branchName, defaultModel, modelList
     return 0;
 }
 
-function assignModels2Branches(lfID, nucCF, defaultModel, branch_names, model_assignments, algn_len, model_list, fixed_branches)
+function assignModels2Branches( lfID,
+                                nucCF,
+                                defaultModel,
+                                branch_names,
+                                model_assignments,
+                                algn_len,
+                                model_list,
+                                fixed_branches,
+                                initial_ts, // XXX this should eventually
+                                            // change to key:value pairs
+                                initial_omegas)
 {
     ExecuteCommands ("GetString(lfInfoAA, " + lfID + ", -1)");
     lfTree = lfInfoAA["Trees"];
@@ -303,22 +313,39 @@ function assignModels2Branches(lfID, nucCF, defaultModel, branch_names, model_as
         }
     }
 
-    ts = {};
     //if (Abs(temp_omegas) == 0)
     //{
-    temp_omegas = {};
-    for (mI = 0; mI < Abs(model_assignments); mI = mI + 1)
+    // XXX Tree names are fixed here, these should be passed in as a
+    // parameter
+    //USE_MG94 = 0;
+    /*
+    if (USE_MG94 == 1)
     {
-        temp_omegas[mI] = 10;
-        srate = Eval ("givenTree." + branch_names[mI] + ".syn");
-        nsrate = Eval ("givenTree." + branch_names[mI] + ".nonsyn");
-        ts[mI] = Eval ("givenTree." + branch_names[mI] + ".syn");
-        //fprintf(stdout, "" + nsrate + ", " + srate + "\n");
-        if (srate > 0)
+        for (mI = 0; mI < Abs(model_assignments); mI = mI + 1)
         {
-            temp_omegas[mI] = Min (10, nsrate/srate);
+            temp_omegas[mI] = 10;
+            srate = Eval ("givenTree." + branch_names[mI] + ".syn");
+            nsrate = Eval ("givenTree." + branch_names[mI] + ".nonsyn");
+            ts[mI] = Eval ("givenTree." + branch_names[mI] + ".syn");
+            //fprintf(stdout, "" + nsrate + ", " + srate + "\n");
+            if (srate > 0)
+            {
+                temp_omegas[mI] = Min (10, nsrate/srate);
+            }
         }
     }
+    */
+    /*
+    else
+    {
+        for (mI = 0; mI < Abs(model_assignments); mI = mI + 1)
+        {
+            temp_omegas[mI] = Eval ("mixtureTree." + branch_names[mI] + ".omega1");
+            ts[mI] = Eval ("mixtureTree." + branch_names[mI] + ".t");
+        }
+
+    }
+    */
     //}
 
     //fprintf(stdout, "\nomega results: \n");
@@ -359,14 +386,24 @@ function assignModels2Branches(lfID, nucCF, defaultModel, branch_names, model_as
                 // I'm going to use a global variable here for the time
                 // being. This should be changed long term
                 //ExecuteCommands("tTemp = " + lfTreeID + "." + branch_names[mod_assgn_I] + ".t");
-                ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".t := "  + mgl_ts[mod_assgn_I]);
+                //ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".t := "  + mgl_ts[mod_assgn_I]);
             }
         }
         if (model_assignments[mod_assgn_I] > 0)
         {
             for (omegaI = 1; omegaI <= model_assignments[mod_assgn_I]; omegaI = omegaI + 1)
             {
-                ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".omega" + omegaI + equality_operator + (temp_omegas[mod_assgn_I] * (2^omegaI)) + ";");
+                ExecuteCommands(    lfTreeID
+                                    + "."
+                                    + branch_names[mod_assgn_I]
+                                    + ".omega"
+                                    + omegaI
+                                    + equality_operator
+                                    +   (initial_omegas[mod_assgn_I]
+                                        * (2^(omegaI-1)))
+                                    + ";");
+                //ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] +
+                //".omega" + omegaI + equality_operator + (.1 * (2^omegaI)) + ";");
                 if (omegaI != model_assignments[mod_assgn_I])
                 {
                     ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".Paux" + omegaI + equality_operator + ((algn_len - 1)/algn_len) + ";");
@@ -378,7 +415,15 @@ function assignModels2Branches(lfID, nucCF, defaultModel, branch_names, model_as
                 ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".Paux1 " + equality_operator + (1 - (model_assignments[mod_assgn_I] * (1/algn_len))) + ";");
             }
         }
-        ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".t = " + ts[mod_assgn_I] + ";");
+        ExecuteCommands(lfTreeID
+                        + "."
+                        + branch_names[mod_assgn_I]
+                        + ".t "
+                        + equality_operator
+                        + initial_ts[mod_assgn_I]
+                        + ";");
+        //ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".t "+
+        //equality_operator + 1 + ";");
         //ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".t = 1;");
     }
 
