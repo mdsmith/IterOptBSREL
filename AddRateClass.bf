@@ -367,7 +367,7 @@ function assignModels2Branches( lfID,
         fprintf(stdout, "\n");
     }
 
-    USE_LAST_RESULTS = 1;
+    //USE_LAST_RESULTS = 1;
     REPLACE_TREE_STRUCTURE = 1;
 
     ExecuteCommands ("UseModel(" + defaultModel + ")");
@@ -378,8 +378,15 @@ function assignModels2Branches( lfID,
     for (mod_assgn_I = 0; mod_assgn_I < Abs(model_assignments); mod_assgn_I = mod_assgn_I + 1)
     {
         equality_operator = "=";
-        if (Abs(fixed_branches) == Abs(model_assignments))
+        //if (Abs(fixed_branches) == Abs(model_assignments))
+        if (FAST_MODE == 1)
         {
+            if (VERBOSITY_LEVEL >= 1)
+            {
+                fprintf(stdout, "Fixed Branches in the assigner:\n");
+                fprintf(stdout, fixed_branches);
+                fprintf(stdout, "\n");
+            }
             if (fixed_branches[mod_assgn_I] == 1)
             {
                 equality_operator = ":=";

@@ -3,7 +3,7 @@
 // Initialize BSREL2,3 from BSREL1, compare to BSREL1
 
 VERBOSITY_LEVEL				 = 1;
-FAST_MODE = 0;
+FAST_MODE = 1;
 
 skipCodeSelectionStep 		= 0;
 LoadFunctionLibrary("chooseGeneticCode");
@@ -193,7 +193,13 @@ for (initI = 0; initI < totalBranchCount; initI = initI + 1)
     last_bics[initI] = orig_bic;// The first comparison for each additional
                                 //omega will be to a version with one omega
                                 //per branch, thus MGL's BIC
-    fixed_branches[initI] = 1;
+    fixed_branches[initI] = 0;
+}
+if (VERBOSITY_LEVEL > 1)
+{
+    fprintf(stdout, "Fixed Branches afer MG94\n");
+    fprintf(stdout, fixed_branches);
+    fprintf(stdout, "\n");
 }
 for (mI = 0; mI < totalBranchCount; mI = mI + 1)
 {
@@ -219,7 +225,7 @@ assignModels2Branches(  "three_LF",
                         working_models,
                         algn_len,
                         model_list,
-                        null,
+                        fixed_branches,
                         initial_ts,
                         initial_omegas);
 // Optimize the MGL likelihood function
@@ -256,15 +262,18 @@ for (mI = 0; mI < totalBranchCount; mI = mI + 1)
 {
     initial_omegas[mI] = Eval ("mixtureTree." + bNames[mI] + ".omega1");
     initial_ts[mI] = Eval ("mixtureTree." + bNames[mI] + ".t");
+    if (FAST_MODE == 1)
+    {
+        fixed_branches[mI] = 1;
+    }
+}
+if (VERBOSITY_LEVEL > 1)
+{
+    fprintf(stdout, "Fixed Branches afer BSREL1\n");
+    fprintf(stdout, fixed_branches);
+    fprintf(stdout, "\n");
 }
 
-/*
-fprintf(stdout, "ts:\n");
-fprintf(stdout, ts);
-fprintf(stdout, "temp_omegas::\n");
-fprintf(stdout, temp_omegas);
-USE_MG94 = 0;
-*/
 
 branchLengths = {};
 // PRINT out the calculated branch lengths
@@ -339,7 +348,7 @@ while (branchesToOptimize > 0)
                                         working_models,
                                         algn_len,
                                         model_list,
-                                        null,
+                                        fixed_branches,
                                         initial_ts,
                                         initial_omegas);
             }
@@ -360,14 +369,14 @@ while (branchesToOptimize > 0)
             {
                 // Don't fork, optimize:
                 OptBranch(launchI);
-            }
-            if (VERBOSITY_LEVEL >= 1)
-            {
-                // Print
-                lfOut	= csvFilePath + "." + bNames[launchI] + ".omega" + working_models[launchI] + "opt.fit";
-                LIKELIHOOD_FUNCTION_OUTPUT = 7;
-                fprintf (lfOut, CLEAR_FILE, three_LF);
-                LIKELIHOOD_FUNCTION_OUTPUT = 2;
+                if (VERBOSITY_LEVEL >= 1)
+                {
+                    // Print
+                    lfOut	= csvFilePath + "." + bNames[launchI] + ".omega" + working_models[launchI] + "opt.fit";
+                    LIKELIHOOD_FUNCTION_OUTPUT = 7;
+                    fprintf (lfOut, CLEAR_FILE, three_LF);
+                    LIKELIHOOD_FUNCTION_OUTPUT = 2;
+                }
             }
         }
     }
@@ -406,6 +415,11 @@ if (VERBOSITY_LEVEL >= 1)
     fprintf(stdout, "\n");
 }
 
+for (bI = 0; bI < totalBranchCount; bI = bI + 1)
+{
+    fixed_branches[bI] = 0;
+}
+
 // Apply best_models to a new likelihood function
 assignModels2Branches(  "three_LF",
                         nucCF,
@@ -414,7 +428,7 @@ assignModels2Branches(  "three_LF",
                         best_models,
                         algn_len,
                         model_list,
-                        null,
+                        fixed_branches,
                         initial_ts,
                         initial_omegas);
 
@@ -585,6 +599,14 @@ function receiveAnMPIjob()
                                     // name followed by _MLES
     // ******** HIDDEN GLOBAL VARIABLE INSERTED INTO THE NAMESPACE BY HYPHY ********
     fprintf(stdout, "\nJob received from " + fromNode + " saving to branch number " + doneID + "\n");
+    if (VERBOSITY_LEVEL >= 1)
+    {
+        // Print
+        lfOut	= csvFilePath + "." + bNames[doneID] + ".omega" + (best_models[doneID] + 1) + "opt.fit";
+        LIKELIHOOD_FUNCTION_OUTPUT = 7;
+        fprintf (lfOut, CLEAR_FILE, three_LF);
+        LIKELIHOOD_FUNCTION_OUTPUT = 2;
+    }
     //fprintf(stdout, res_three_LF);
     //fprintf(stdout, "\n");
     processResults(res_three_LF, doneID);
