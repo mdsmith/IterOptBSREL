@@ -160,7 +160,8 @@ done_branches = {};
 working_models = {};
 fixed_branches = {};
 initial_ts = {};
-initial_omegas = {};
+bsrel1_omegas = {};
+optimal_omegas = {};
 
 /*
 ts = {};
@@ -185,7 +186,10 @@ for (mI = 0; mI < totalBranchCount; mI = mI + 1)
 for (initI = 0; initI < totalBranchCount; initI = initI + 1)
 {
     initial_ts[initI] = 1;
-    initial_omegas[initI] = 0.1;
+    temp_omega = {};
+    temp_omega[1] = 0.1;
+    //initial_omegas[initI] = 0.1;
+    optimal_omegas[initI] = temp_omega;
     best_models[initI] = 1; // So far the optimal omega # = 1 for all branches
     done_branches[initI] = 0; // none of the branches are done yet
     working_models[initI] = 1;  // This will be filled at each step, so these
@@ -195,7 +199,7 @@ for (initI = 0; initI < totalBranchCount; initI = initI + 1)
                                 //per branch, thus MGL's BIC
     fixed_branches[initI] = 0;
 }
-if (VERBOSITY_LEVEL > 1)
+if (VERBOSITY_LEVEL >= 2)
 {
     fprintf(stdout, "Fixed Branches afer MG94\n");
     fprintf(stdout, fixed_branches);
@@ -203,15 +207,19 @@ if (VERBOSITY_LEVEL > 1)
 }
 for (mI = 0; mI < totalBranchCount; mI = mI + 1)
 {
-    initial_omegas[mI] = 10;
+    temp_omega = {};
+    temp_omega[1] = 10;
+    //initial_omegas[mI] = 10;
     srate = Eval ("givenTree." + bNames[mI] + ".syn");
     nsrate = Eval ("givenTree." + bNames[mI] + ".nonsyn");
     initial_ts[mI] = Eval ("givenTree." + bNames[mI] + ".syn");
     //fprintf(stdout, "" + nsrate + ", " + srate + "\n");
     if (srate > 0)
     {
-        initial_omegas[mI] = Min (10, nsrate/srate);
+        temp_omega[1] = Min (10, nsrate/srate);
+        //initial_omegas[mI] = Min (10, nsrate/srate);
     }
+    optimal_omegas[mI] = temp_omega;
 }
 
 VERBOSITY_LEVEL = 1;
@@ -227,7 +235,8 @@ assignModels2Branches(  "three_LF",
                         model_list,
                         fixed_branches,
                         initial_ts,
-                        initial_omegas);
+                        optimal_omegas);
+                        //initial_omegas);
 // Optimize the MGL likelihood function
 if (VERBOSITY_LEVEL >= 1)
 {
@@ -260,8 +269,16 @@ if (VERBOSITY_LEVEL >= 1)
 
 for (mI = 0; mI < totalBranchCount; mI = mI + 1)
 {
-    initial_omegas[mI] = Eval ("mixtureTree." + bNames[mI] + ".omega1");
+    //initial_omegas[mI] = Eval ("mixtureTree." + bNames[mI] + ".omega1");
+    temp_omega = {};
+    temp_omega[1] = Eval ("mixtureTree." + bNames[mI] + ".omega1");
+    optimal_omegas[mI] = temp_omega;
     initial_ts[mI] = Eval ("mixtureTree." + bNames[mI] + ".t");
+    bsrel1_omegas[mI] = temp_omega;
+    //this_omega = {};
+    //this_omega[1] = Eval ("mixtureTree." + bNames[mI] + ".omega1");
+    //optimal_omegas[mI] = this_omega;
+
     if (FAST_MODE == 1)
     {
         fixed_branches[mI] = 1;
@@ -308,6 +325,9 @@ while (branchesToOptimize > 0)
     {
         if (done_branches[launchI] == 0)
         {
+            fprintf(stdout, "Optimal omegas after branch tests:\n");
+            fprintf(stdout, optimal_omegas);
+            fprintf(stdout, "\n");
             // working_models is used to set the model number for each
             // branch in the LF. This can be removed later on and best_models
             // can be used if you want to use the optimization results for
@@ -336,7 +356,8 @@ while (branchesToOptimize > 0)
                                         model_list,
                                         fixed_branches,
                                         initial_ts,
-                                        initial_omegas);
+                                        bsrel1_omegas);
+                                        //initial_omegas);
                 fixed_branches[launchI] = 1;
             }
             else
@@ -350,7 +371,8 @@ while (branchesToOptimize > 0)
                                         model_list,
                                         fixed_branches,
                                         initial_ts,
-                                        initial_omegas);
+                                        bsrel1_omegas);
+                                        //initial_omegas);
             }
             // Print
             if (VERBOSITY_LEVEL >= 1)
@@ -407,6 +429,10 @@ while (branchesToOptimize > 0)
     }
 }
 
+fprintf(stdout, "Optimal omegas after branch tests:\n");
+fprintf(stdout, optimal_omegas);
+fprintf(stdout, "\n");
+
 // DONE: Optimal omegas are now in best_models
 if (VERBOSITY_LEVEL >= 1)
 {
@@ -430,7 +456,8 @@ assignModels2Branches(  "three_LF",
                         model_list,
                         fixed_branches,
                         initial_ts,
-                        initial_omegas);
+                        optimal_omegas);
+                        //initial_omegas);
 
 if (VERBOSITY_LEVEL >= 1)
 {
@@ -645,6 +672,14 @@ function processResults(res_LF, nodeID)
     {
         last_bics[nodeID] = this_bic;
         best_models[nodeID] = best_models[nodeID] + 1; // best_models is a global variable
+
+        // harvest omegas for the final round
+        these_omegas = {};
+        for (bmI = 1; bmI <= best_models[nodeID]; bmI = bmI + 1)
+        {
+            these_omegas[bmI] = Eval ("mixtureTree." + bNames[nodeID] + ".omega" + bmI);
+        }
+        optimal_omegas[nodeID] = these_omegas;
     }
     // replaced in the main optimizer loop
     //if (VERBOSITY_LEVEL >= 5)

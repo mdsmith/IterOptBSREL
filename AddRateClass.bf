@@ -262,9 +262,9 @@ function assignModels2Branches( lfID,
                                 algn_len,
                                 model_list,
                                 fixed_branches,
-                                initial_ts, // XXX this should eventually
+                                init_ts, // XXX this should eventually
                                             // change to key:value pairs
-                                initial_omegas)
+                                init_os)
 {
     ExecuteCommands ("GetString(lfInfoAA, " + lfID + ", -1)");
     lfTree = lfInfoAA["Trees"];
@@ -381,12 +381,6 @@ function assignModels2Branches( lfID,
         //if (Abs(fixed_branches) == Abs(model_assignments))
         if (FAST_MODE == 1)
         {
-            if (VERBOSITY_LEVEL >= 1)
-            {
-                fprintf(stdout, "Fixed Branches in the assigner:\n");
-                fprintf(stdout, fixed_branches);
-                fprintf(stdout, "\n");
-            }
             if (fixed_branches[mod_assgn_I] == 1)
             {
                 equality_operator = ":=";
@@ -400,14 +394,18 @@ function assignModels2Branches( lfID,
         {
             for (omegaI = 1; omegaI <= model_assignments[mod_assgn_I]; omegaI = omegaI + 1)
             {
+                omegas = init_os[mod_assgn_I];
+                this_omega = omegas[omegaI];
                 ExecuteCommands(    lfTreeID
                                     + "."
                                     + branch_names[mod_assgn_I]
                                     + ".omega"
                                     + omegaI
                                     + equality_operator
-                                    +   (initial_omegas[mod_assgn_I]
-                                        * (2^(omegaI-1)))
+                                    +   this_omega// XXX
+                                    //+   (init_os[mod_assgn_I]// XXX
+                                        //* (2^(omegaI-1)))
+                                        //* (2^(omegaI)))
                                     + ";");
                 //ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] +
                 //".omega" + omegaI + equality_operator + (.1 * (2^omegaI)) + ";");
@@ -427,7 +425,7 @@ function assignModels2Branches( lfID,
                         + branch_names[mod_assgn_I]
                         + ".t "
                         + equality_operator
-                        + initial_ts[mod_assgn_I]
+                        + init_ts[mod_assgn_I]
                         + ";");
         //ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".t "+
         //equality_operator + 1 + ";");
