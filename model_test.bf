@@ -162,6 +162,7 @@ fixed_branches = {};
 initial_ts = {};
 bsrel1_omegas = {};
 optimal_omegas = {};
+optimal_pauxs = {};
 
 /*
 ts = {};
@@ -235,6 +236,7 @@ assignModels2Branches(  "three_LF",
                         model_list,
                         fixed_branches,
                         initial_ts,
+                        optimal_pauxs,
                         optimal_omegas);
                         //initial_omegas);
 // Optimize the MGL likelihood function
@@ -325,8 +327,11 @@ while (branchesToOptimize > 0)
     {
         if (done_branches[launchI] == 0)
         {
-            fprintf(stdout, "Optimal omegas after branch tests:\n");
+            fprintf(stdout, "Optimal omegas during branch tests:\n");
             fprintf(stdout, optimal_omegas);
+            fprintf(stdout, "\n");
+            fprintf(stdout, "Optimal pauxs during branch tests:\n");
+            fprintf(stdout, optimal_pauxs);
             fprintf(stdout, "\n");
             // working_models is used to set the model number for each
             // branch in the LF. This can be removed later on and best_models
@@ -356,8 +361,8 @@ while (branchesToOptimize > 0)
                                         model_list,
                                         fixed_branches,
                                         initial_ts,
+                                        optimal_pauxs,
                                         bsrel1_omegas);
-                                        //initial_omegas);
                 fixed_branches[launchI] = 1;
             }
             else
@@ -371,8 +376,8 @@ while (branchesToOptimize > 0)
                                         model_list,
                                         fixed_branches,
                                         initial_ts,
+                                        optimal_pauxs,
                                         bsrel1_omegas);
-                                        //initial_omegas);
             }
             // Print
             if (VERBOSITY_LEVEL >= 1)
@@ -456,8 +461,8 @@ assignModels2Branches(  "three_LF",
                         model_list,
                         fixed_branches,
                         initial_ts,
+                        optimal_pauxs,
                         optimal_omegas);
-                        //initial_omegas);
 
 if (VERBOSITY_LEVEL >= 1)
 {
@@ -675,11 +680,17 @@ function processResults(res_LF, nodeID)
 
         // harvest omegas for the final round
         these_omegas = {};
+        these_pauxs = {};
         for (bmI = 1; bmI <= best_models[nodeID]; bmI = bmI + 1)
         {
             these_omegas[bmI] = Eval ("mixtureTree." + bNames[nodeID] + ".omega" + bmI);
+            if (bmI != best_models[nodeID])
+            {
+                these_pauxs[bmI] = Eval("mixtureTree." + bNames[nodeID] + ".Paux" + bmI);
+            }
         }
         optimal_omegas[nodeID] = these_omegas;
+        optimal_pauxs[nodeID] = these_pauxs;
     }
     // replaced in the main optimizer loop
     //if (VERBOSITY_LEVEL >= 5)

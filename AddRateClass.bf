@@ -262,8 +262,8 @@ function assignModels2Branches( lfID,
                                 algn_len,
                                 model_list,
                                 fixed_branches,
-                                init_ts, // XXX this should eventually
-                                            // change to key:value pairs
+                                init_ts,
+                                init_ps,
                                 init_os)
 {
     ExecuteCommands ("GetString(lfInfoAA, " + lfID + ", -1)");
@@ -411,13 +411,25 @@ function assignModels2Branches( lfID,
                 //".omega" + omegaI + equality_operator + (.1 * (2^omegaI)) + ";");
                 if (omegaI != model_assignments[mod_assgn_I])
                 {
-                    ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".Paux" + omegaI + equality_operator + ((algn_len - 1)/algn_len) + ";");
+                    pauxs = init_ps[mod_assgn_I];
+                    if (pauxs == 0)
+                    {
+                        ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".Paux" + omegaI + equality_operator + ((algn_len - 1)/algn_len) + ";");
+                    }
+                    else
+                    {
+                        this_paux = pauxs[omegaI];
+                        ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".Paux" + omegaI + equality_operator + this_paux + ";");
+                    }
                     ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".Paux" + omegaI + " :< 1;");
                 }
             }
             if (model_assignments[mod_assgn_I] > 1)
             {
-                ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".Paux1 " + equality_operator + (1 - (model_assignments[mod_assgn_I] * (1/algn_len))) + ";");
+                if (init_ps[mod_assgn_I] == 0)
+                {
+                    ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".Paux1 " + equality_operator + (1 - (model_assignments[mod_assgn_I] * (1/algn_len))) + ";");
+                }
             }
         }
         ExecuteCommands(lfTreeID
