@@ -162,6 +162,7 @@ fixed_branches = {};
 initial_ts = {};
 bsrel1_omegas = {};
 optimal_omegas = {};
+initial_pauxs = {};
 optimal_pauxs = {};
 
 /*
@@ -236,7 +237,7 @@ assignModels2Branches(  "three_LF",
                         model_list,
                         fixed_branches,
                         initial_ts,
-                        optimal_pauxs,
+                        initial_pauxs,
                         optimal_omegas);
                         //initial_omegas);
 // Optimize the MGL likelihood function
@@ -361,7 +362,7 @@ while (branchesToOptimize > 0)
                                         model_list,
                                         fixed_branches,
                                         initial_ts,
-                                        optimal_pauxs,
+                                        initial_pauxs,
                                         bsrel1_omegas);
                 fixed_branches[launchI] = 1;
             }
@@ -376,7 +377,7 @@ while (branchesToOptimize > 0)
                                         model_list,
                                         fixed_branches,
                                         initial_ts,
-                                        optimal_pauxs,
+                                        initial_pauxs,
                                         bsrel1_omegas);
             }
             // Print
@@ -436,6 +437,9 @@ while (branchesToOptimize > 0)
 
 fprintf(stdout, "Optimal omegas after branch tests:\n");
 fprintf(stdout, optimal_omegas);
+fprintf(stdout, "\n");
+fprintf(stdout, "Optimal pauxs after branch tests:\n");
+fprintf(stdout, optimal_pauxs);
 fprintf(stdout, "\n");
 
 // DONE: Optimal omegas are now in best_models

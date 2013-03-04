@@ -412,7 +412,7 @@ function assignModels2Branches( lfID,
                 if (omegaI != model_assignments[mod_assgn_I])
                 {
                     pauxs = init_ps[mod_assgn_I];
-                    if (pauxs == 0)
+                    if (Abs(pauxs) == 0)
                     {
                         ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".Paux" + omegaI + equality_operator + ((algn_len - 1)/algn_len) + ";");
                     }
@@ -426,7 +426,7 @@ function assignModels2Branches( lfID,
             }
             if (model_assignments[mod_assgn_I] > 1)
             {
-                if (init_ps[mod_assgn_I] == 0)
+                if (Abs(init_ps[mod_assgn_I]) == 0)
                 {
                     ExecuteCommands(lfTreeID + "." + branch_names[mod_assgn_I] + ".Paux1 " + equality_operator + (1 - (model_assignments[mod_assgn_I] * (1/algn_len))) + ";");
                 }
